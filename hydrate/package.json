@@ -1,0 +1,12 @@
+{
+  "name": "node-starter/hydrate",
+  "description": "MyApp component hydration app.",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "exports": {
+    ".": {
+      "require": "./index.js",
+      "import": "./index.mjs"
+    }
+  }
+}

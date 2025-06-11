@@ -1,0 +1,8 @@
+<!DOCTYPE html>
+
+<head>
+  <!-- <script type="module" src="/components/build/myapp.esm.js"></script> -->
+</head>
+<body>
+  Hydration Bugs: <br />
+  <%- buglist.map(bug => `<a href="/${bug}">${bug}</a><br />`).join(''); %>
