@@ -1,8 +1,8 @@
-import { p as promiseResolve, a as H, g as globalScripts, b as bootstrapLazy } from './index-Bb3T4rNo.js';
-export { s as setNonce } from './index-Bb3T4rNo.js';
+import { p as promiseResolve, a as H, g as globalScripts, b as bootstrapLazy } from './index-g4k2lc5z.js';
+export { s as setNonce } from './index-g4k2lc5z.js';
 
 /*
- Stencil Client Patch Browser v4.33.1 | MIT Licensed | https://stenciljs.com
+ Stencil Client Patch Browser v4.34.0 | MIT Licensed | https://stenciljs.com
  */
 
 var patchBrowser = () => {
@@ -37,8 +37,5 @@ var patchCloneNodeFix = (HTMLElementPrototype) => {
 
 patchBrowser().then(async (options) => {
   await globalScripts();
-  return bootstrapLazy([["example-scoped",[[1,"example-scoped"]]],["example-shadow",[[1,"example-shadow"]]]], options);
+  return bootstrapLazy([["cmp-child",[[1,"cmp-child"]]],["cmp-parent",[[1,"cmp-parent"]]]], options);
 });
-//# sourceMappingURL=myapp.esm.js.map
-
-//# sourceMappingURL=myapp.esm.js.map

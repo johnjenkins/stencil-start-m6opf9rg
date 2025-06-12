@@ -130,7 +130,7 @@ const NAMESPACE = 'myapp';
 const BUILD = /* myapp */ { hydratedSelectorName: "hydrated", slotRelocation: true, updatable: true, watchCallback: false };
 
 /*
- Stencil Hydrate Platform v4.33.1 | MIT Licensed | https://stenciljs.com
+ Stencil Hydrate Platform v4.34.0 | MIT Licensed | https://stenciljs.com
  */
 var __defProp = Object.defineProperty;
 var __export = (target, all) => {
@@ -457,7 +457,7 @@ function patchSlotNode(node) {
     const slotName = this["s-sn"];
     if (opts == null ? void 0 : opts.flatten) {
       console.error(`
-          Flattening is not supported for Stencil non-shadow slots. 
+          Flattening is not supported for Stencil non-shadow slots.
           You can use \`.childNodes\` to nested slot fallback content.
           If you have a particular use case, please open an issue on the Stencil repo.
         `);
@@ -583,15 +583,16 @@ var initializeClientHydrate = (hostElm, tagName, hostId, hostRef) => {
   vnode.$elm$ = hostElm;
   const members = Object.entries(((_a = hostRef.$cmpMeta$) == null ? void 0 : _a.$members$) || {});
   members.forEach(([memberName, [memberFlags, metaAttributeName]]) => {
-    var _a2;
+    var _b;
     if (!(memberFlags & 31 /* Prop */)) {
       return;
     }
     const attributeName = metaAttributeName || memberName;
     const attrVal = hostElm.getAttribute(attributeName);
     if (attrVal !== null) {
-      const attrPropVal = parsePropertyValue(attrVal);
-      (_a2 = hostRef == null ? void 0 : hostRef.$instanceValues$) == null ? void 0 : _a2.set(memberName, attrPropVal);
+      const attrPropVal = parsePropertyValue(
+        attrVal);
+      (_b = hostRef == null ? void 0 : hostRef.$instanceValues$) == null ? void 0 : _b.set(memberName, attrPropVal);
     }
   });
   if (win.document && (!plt.$orgLocNodes$ || !plt.$orgLocNodes$.size)) {
@@ -1319,7 +1320,7 @@ var scopeCss = (cssText, scopeId2, commentOriginalSelector) => {
   });
   return cssText;
 };
-var parsePropertyValue = (propValue, propType) => {
+var parsePropertyValue = (propValue, propType, isFormAssociated) => {
   if (typeof propValue === "string" && (propValue.startsWith("{") && propValue.endsWith("}") || propValue.startsWith("[") && propValue.endsWith("]"))) {
     try {
       propValue = JSON.parse(propValue);
@@ -1369,7 +1370,7 @@ var addStyle = (styleContainerNode, cmpMeta, mode) => {
         if (styleContainerNode.host && (styleElm = styleContainerNode.querySelector(`[${HYDRATED_STYLE_ID}="${scopeId2}"]`))) {
           styleElm.innerHTML = style;
         } else {
-          styleElm = document.querySelector(`[${HYDRATED_STYLE_ID}="${scopeId2}"]`) || win.document.createElement("style");
+          styleElm = win.document.createElement("style");
           styleElm.innerHTML = style;
           const nonce = (_a = plt.$nonce$) != null ? _a : queryNonceMetaTagContent(win.document);
           if (nonce != null) {
@@ -1433,8 +1434,42 @@ var setAccessor = (elm, memberName, oldValue, newValue, isSvg, flags, initialRen
   if (oldValue === newValue) {
     return;
   }
-  isMemberInElement(elm, memberName);
+  let isProp = isMemberInElement(elm, memberName);
   memberName.toLowerCase();
+  if (memberName === "key") ; else {
+    const isComplex = isComplexType(newValue);
+    if ((isProp || isComplex && newValue !== null) && true) {
+      try {
+        if (!elm.tagName.includes("-")) {
+          const n = newValue == null ? "" : newValue;
+          if (memberName === "list") {
+            isProp = false;
+          } else if (oldValue == null || elm[memberName] != n) {
+            if (typeof elm.__lookupSetter__(memberName) === "function") {
+              elm[memberName] = n;
+            } else {
+              elm.setAttribute(memberName, n);
+            }
+          }
+        } else if (elm[memberName] !== newValue) {
+          elm[memberName] = newValue;
+        }
+      } catch (e) {
+      }
+    }
+    if (newValue == null || newValue === false) {
+      if (newValue !== false || elm.getAttribute(memberName) === "") {
+        {
+          elm.removeAttribute(memberName);
+        }
+      }
+    } else if ((!isProp || flags & 4 /* isHost */ || isSvg) && !isComplex && elm.nodeType === 1 /* ElementNode */) {
+      newValue = newValue === true ? "" : newValue;
+      {
+        elm.setAttribute(memberName, newValue);
+      }
+    }
+  }
 };
 
 // src/runtime/vdom/update-element.ts
@@ -1449,7 +1484,9 @@ var updateElement = (oldVnode, newVnode, isSvgMode2, isInitialRender) => {
           elm,
           memberName,
           oldVnodeAttrs[memberName],
-          void 0);
+          void 0,
+          isSvgMode2,
+          newVnode.$flags$);
       }
     }
   }
@@ -1458,7 +1495,9 @@ var updateElement = (oldVnode, newVnode, isSvgMode2, isInitialRender) => {
       elm,
       memberName,
       oldVnodeAttrs[memberName],
-      newVnodeAttrs[memberName]);
+      newVnodeAttrs[memberName],
+      isSvgMode2,
+      newVnode.$flags$);
   }
 };
 function sortedAttrNames(attrNames) {
@@ -1478,6 +1517,7 @@ var hostTagName;
 var useNativeShadowDom = false;
 var checkSlotFallbackVisibility = false;
 var checkSlotRelocate = false;
+var isSvgMode = false;
 var createElm = (oldParentVNode, newParentVNode, childIndex) => {
   var _a;
   const newVNode2 = newParentVNode.$children$[childIndex];
@@ -1505,7 +1545,7 @@ var createElm = (oldParentVNode, newParentVNode, childIndex) => {
   } else if (newVNode2.$flags$ & 1 /* isSlotReference */) {
     elm = newVNode2.$elm$ = slotReferenceDebugNode(newVNode2) ;
     {
-      updateElement(null, newVNode2);
+      updateElement(null, newVNode2, isSvgMode);
     }
   } else {
     if (!win.document) {
@@ -1517,7 +1557,7 @@ var createElm = (oldParentVNode, newParentVNode, childIndex) => {
       !useNativeShadowDom && BUILD.slotRelocation && newVNode2.$flags$ & 2 /* isSlotFallback */ ? "slot-fb" : newVNode2.$tag$
     );
     {
-      updateElement(null, newVNode2);
+      updateElement(null, newVNode2, isSvgMode);
     }
     if (isDef(scopeId) && elm["s-si"] !== scopeId) {
       elm.classList.add(elm["s-si"] = scopeId);
@@ -1723,7 +1763,7 @@ var patch = (oldVNode, newVNode2, isInitialRender = false) => {
   let defaultHolder;
   if (text === null) {
     {
-      updateElement(oldVNode, newVNode2);
+      updateElement(oldVNode, newVNode2, isSvgMode);
     }
     if (oldChildren !== null && newChildren !== null) {
       updateChildren(elm, oldChildren, newVNode2, newChildren, isInitialRender);
@@ -2105,7 +2145,8 @@ var setValue = (ref, propName, newVal, cmpMeta) => {
   const oldVal = hostRef.$instanceValues$.get(propName);
   const flags = hostRef.$flags$;
   const instance = hostRef.$lazyInstance$ ;
-  newVal = parsePropertyValue(newVal);
+  newVal = parsePropertyValue(
+    newVal);
   const areBothNaN = Number.isNaN(oldVal) && Number.isNaN(newVal);
   const didValueChange = newVal !== oldVal && !areBothNaN;
   if ((!(flags & 8 /* isConstructingInstance */) || oldVal === void 0) && didValueChange) {
@@ -2875,12 +2916,12 @@ let MyApp$1 = class MyApp {
         registerInstance(this, hostRef);
     }
     render() {
-        return hAsync(Host, { key: 'b58ff69eec59eeb5419f0382827d163dee57d556' }, "I should be red");
+        return hAsync(Host, { key: 'af55acc173c0a5625cb1e3eed79f760e791b5865' }, hAsync("slot", { key: '61ab29fb85e74ff93b823299be58ddf128b98c6a' }), hAsync("slot", { key: '7aed4b1b6830222713367ff8a578a93baaeec1c3', name: "one" }), hAsync("slot", { key: '6bc213a94331472009648d7f943fce4ff7837b11', name: "two" }));
     }
     static get style() { return ":host {\n    display: block;\n    border: 3px solid red;\n  }"; }
     static get cmpMeta() { return {
         "$flags$": 9,
-        "$tagName$": "example-scoped",
+        "$tagName$": "cmp-child",
         "$members$": undefined,
         "$listeners$": undefined,
         "$lazyBundleId$": "-",
@@ -2893,12 +2934,12 @@ class MyApp {
         registerInstance(this, hostRef);
     }
     render() {
-        return (hAsync(Host, { key: '1b7cba1b9d6e56ab522281ecb5e3b0ef64f7986c' }, hAsync("div", { key: '709572cf0cf6992711e48ebd28349acb10521362' }, "I am a shadow component. Here is a `serializeShadowRoot` 'scoped'. It should be red:", hAsync("example-scoped", { key: '6403de989e26626b1e600eaf289cc6fde425cda7' }))));
+        return (hAsync(Host, { key: 'c2fc95d2756f35c7f41f62bed1f760b0fedef04d' }, hAsync("div", { key: 'ee95589c6e8f73cb8068bde314ccb00d2a5c0bb6' }, "I am a parent component. Here's my child:", hAsync("cmp-child", { key: '2fac43ab579af35ef6177ee6f172cf1b0ce151b2' }, hAsync("slot", { key: 'c904163fa2631069f485eac64bf92af91e7eb7bb' })))));
     }
     static get style() { return ":host {\n    display: block;\n    border: 3px solid blue;\n  }"; }
     static get cmpMeta() { return {
         "$flags$": 9,
-        "$tagName$": "example-shadow",
+        "$tagName$": "cmp-parent",
         "$members$": undefined,
         "$listeners$": undefined,
         "$lazyBundleId$": "-",
@@ -3008,7 +3049,7 @@ var NAMESPACE = (
 );
 
 /*
- Stencil Hydrate Runner v4.33.1 | MIT Licensed | https://stenciljs.com
+ Stencil Hydrate Runner v4.34.0 | MIT Licensed | https://stenciljs.com
  */
 var __defProp = Object.defineProperty;
 var __export = (target, all) => {
@@ -13893,6 +13934,15 @@ var MockNode2 = class {
   }
   set textContent(value) {
     this._nodeValue = String(value);
+  }
+  addEventListener(type, handler) {
+    addEventListener(this, type, handler);
+  }
+  removeEventListener(type, handler) {
+    removeEventListener(this, type, handler);
+  }
+  dispatchEvent(ev) {
+    return dispatchEvent(this, ev);
   }
 };
 MockNode2.ELEMENT_NODE = 1;

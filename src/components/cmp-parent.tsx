@@ -1,7 +1,7 @@
 import { Component, Host, h } from '@stencil/core';
 
 @Component({
-  tag: 'example-shadow',
+  tag: 'cmp-parent',
   shadow: true,
   styles: `:host {
     display: block;
@@ -13,9 +13,10 @@ export class MyApp {
     return (
       <Host>
         <div>
-          I am a shadow component. Here is a `serializeShadowRoot` 'scoped'. It
-          should be red:
-          <example-scoped />
+          I am a parent component. Here's my child:
+          <cmp-child>
+            <slot />
+          </cmp-child>
         </div>
       </Host>
     );

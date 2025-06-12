@@ -5,7 +5,7 @@ const globalScripts = () => {};
 const globalStyles = "";
 
 /*
- Stencil Client Platform v4.33.1 | MIT Licensed | https://stenciljs.com
+ Stencil Client Platform v4.34.0 | MIT Licensed | https://stenciljs.com
  */
 var __defProp = Object.defineProperty;
 var __export = (target, all) => {
@@ -64,6 +64,7 @@ var registerHost = (hostElement, cmpMeta) => {
   hostElement.__stencil__getHostRef = () => ref;
   return ref;
 };
+var isMemberInElement = (elm, memberName) => memberName in elm;
 var consoleError = (e, el) => (0, console.error)(e, el);
 
 // src/client/client-load-module.ts
@@ -403,7 +404,7 @@ function patchSlotNode(node) {
     const slotName = this["s-sn"];
     if (opts == null ? void 0 : opts.flatten) {
       console.error(`
-          Flattening is not supported for Stencil non-shadow slots. 
+          Flattening is not supported for Stencil non-shadow slots.
           You can use \`.childNodes\` to nested slot fallback content.
           If you have a particular use case, please open an issue on the Stencil repo.
         `);
@@ -636,15 +637,16 @@ var initializeClientHydrate = (hostElm, tagName, hostId, hostRef) => {
   vnode.$elm$ = hostElm;
   const members = Object.entries(((_a = hostRef.$cmpMeta$) == null ? void 0 : _a.$members$) || {});
   members.forEach(([memberName, [memberFlags, metaAttributeName]]) => {
-    var _a2;
+    var _b;
     if (!(memberFlags & 31 /* Prop */)) {
       return;
     }
     const attributeName = metaAttributeName || memberName;
     const attrVal = hostElm.getAttribute(attributeName);
     if (attrVal !== null) {
-      const attrPropVal = parsePropertyValue(attrVal);
-      (_a2 = hostRef == null ? void 0 : hostRef.$instanceValues$) == null ? void 0 : _a2.set(memberName, attrPropVal);
+      const attrPropVal = parsePropertyValue(
+        attrVal);
+      (_b = hostRef == null ? void 0 : hostRef.$instanceValues$) == null ? void 0 : _b.set(memberName, attrPropVal);
     }
   });
   if (win.document && (!plt.$orgLocNodes$ || !plt.$orgLocNodes$.size)) {
@@ -1017,7 +1019,7 @@ var createSupportsRuleRe = (selector) => {
 createSupportsRuleRe("::slotted");
 createSupportsRuleRe(":host");
 createSupportsRuleRe(":host-context");
-var parsePropertyValue = (propValue, propType) => {
+var parsePropertyValue = (propValue, propType, isFormAssociated) => {
   if (typeof propValue === "string" && (propValue.startsWith("{") && propValue.endsWith("}") || propValue.startsWith("[") && propValue.endsWith("]"))) {
     try {
       propValue = JSON.parse(propValue);
@@ -1074,7 +1076,7 @@ var addStyle = (styleContainerNode, cmpMeta, mode) => {
         if (styleContainerNode.host && (styleElm = styleContainerNode.querySelector(`[${HYDRATED_STYLE_ID}="${scopeId2}"]`))) {
           styleElm.innerHTML = style;
         } else {
-          styleElm = document.querySelector(`[${HYDRATED_STYLE_ID}="${scopeId2}"]`) || win.document.createElement("style");
+          styleElm = win.document.createElement("style");
           styleElm.innerHTML = style;
           const nonce = (_a = plt.$nonce$) != null ? _a : queryNonceMetaTagContent(win.document);
           if (nonce != null) {
@@ -1152,7 +1154,42 @@ var setAccessor = (elm, memberName, oldValue, newValue, isSvg, flags, initialRen
   if (oldValue === newValue) {
     return;
   }
+  let isProp = isMemberInElement(elm, memberName);
   memberName.toLowerCase();
+  if (memberName === "key") ; else {
+    const isComplex = isComplexType(newValue);
+    if ((isProp || isComplex && newValue !== null) && true) {
+      try {
+        if (!elm.tagName.includes("-")) {
+          const n = newValue == null ? "" : newValue;
+          if (memberName === "list") {
+            isProp = false;
+          } else if (oldValue == null || elm[memberName] != n) {
+            if (typeof elm.__lookupSetter__(memberName) === "function") {
+              elm[memberName] = n;
+            } else {
+              elm.setAttribute(memberName, n);
+            }
+          }
+        } else if (elm[memberName] !== newValue) {
+          elm[memberName] = newValue;
+        }
+      } catch (e) {
+      }
+    }
+    if (newValue == null || newValue === false) {
+      if (newValue !== false || elm.getAttribute(memberName) === "") {
+        {
+          elm.removeAttribute(memberName);
+        }
+      }
+    } else if ((!isProp || flags & 4 /* isHost */ || isSvg) && !isComplex && elm.nodeType === 1 /* ElementNode */) {
+      newValue = newValue === true ? "" : newValue;
+      {
+        elm.setAttribute(memberName, newValue);
+      }
+    }
+  }
 };
 
 // src/runtime/vdom/update-element.ts
@@ -1167,7 +1204,9 @@ var updateElement = (oldVnode, newVnode, isSvgMode2, isInitialRender) => {
           elm,
           memberName,
           oldVnodeAttrs[memberName],
-          void 0);
+          void 0,
+          isSvgMode2,
+          newVnode.$flags$);
       }
     }
   }
@@ -1176,7 +1215,9 @@ var updateElement = (oldVnode, newVnode, isSvgMode2, isInitialRender) => {
       elm,
       memberName,
       oldVnodeAttrs[memberName],
-      newVnodeAttrs[memberName]);
+      newVnodeAttrs[memberName],
+      isSvgMode2,
+      newVnode.$flags$);
   }
 };
 function sortedAttrNames(attrNames) {
@@ -1189,6 +1230,8 @@ function sortedAttrNames(attrNames) {
   );
 }
 var hostTagName;
+var useNativeShadowDom = false;
+var isSvgMode = false;
 var createElm = (oldParentVNode, newParentVNode, childIndex) => {
   const newVNode2 = newParentVNode.$children$[childIndex];
   let i2 = 0;
@@ -1206,7 +1249,7 @@ var createElm = (oldParentVNode, newParentVNode, childIndex) => {
       newVNode2.$tag$
     );
     {
-      updateElement(null, newVNode2);
+      updateElement(null, newVNode2, isSvgMode);
     }
     if (newVNode2.$children$) {
       for (i2 = 0; i2 < newVNode2.$children$.length; ++i2) {
@@ -1219,6 +1262,25 @@ var createElm = (oldParentVNode, newParentVNode, childIndex) => {
   }
   elm["s-hn"] = hostTagName;
   return elm;
+};
+var relocateToHostRoot = (parentElm) => {
+  plt.$flags$ |= 1 /* isTmpDisconnected */;
+  const host = parentElm.closest(hostTagName.toLowerCase());
+  if (host != null) {
+    const contentRefNode = Array.from(host.__childNodes || host.childNodes).find(
+      (ref) => ref["s-cr"]
+    );
+    const childNodeArray = Array.from(
+      parentElm.__childNodes || parentElm.childNodes
+    );
+    for (const childNode of contentRefNode ? childNodeArray.reverse() : childNodeArray) {
+      if (childNode["s-sh"] != null) {
+        insertBefore(host, childNode, contentRefNode != null ? contentRefNode : null);
+        childNode["s-sh"] = void 0;
+      }
+    }
+  }
+  plt.$flags$ &= -2 /* isTmpDisconnected */;
 };
 var addVnodes = (parentElm, before, parentVNode, vnodes, startIdx, endIdx) => {
   let containerElm = parentElm;
@@ -1347,10 +1409,17 @@ var patch = (oldVNode, newVNode2, isInitialRender = false) => {
   const elm = newVNode2.$elm$ = oldVNode.$elm$;
   const oldChildren = oldVNode.$children$;
   const newChildren = newVNode2.$children$;
+  const tag = newVNode2.$tag$;
   const text = newVNode2.$text$;
   if (text === null) {
     {
-      updateElement(oldVNode, newVNode2);
+      if (tag === "slot" && !useNativeShadowDom) {
+        if (oldVNode.$name$ !== newVNode2.$name$) {
+          newVNode2.$elm$["s-sn"] = newVNode2.$name$ || "";
+          relocateToHostRoot(newVNode2.$elm$.parentElement);
+        }
+      }
+      updateElement(oldVNode, newVNode2, isSvgMode);
     }
     if (oldChildren !== null && newChildren !== null) {
       updateChildren(elm, oldChildren, newVNode2, newChildren, isInitialRender);
@@ -1404,6 +1473,7 @@ var renderVdom = (hostRef, renderFnResults, isInitialLoad = false) => {
   rootVnode.$flags$ |= 4 /* isHost */;
   hostRef.$vnode$ = rootVnode;
   rootVnode.$elm$ = oldVNode.$elm$ = hostElm.shadowRoot || hostElm ;
+  useNativeShadowDom = !!(cmpMeta.$flags$ & 1 /* shadowDomEncapsulation */) && !(cmpMeta.$flags$ & 128 /* shadowNeedsScopedCss */);
   patch(oldVNode, rootVnode, isInitialLoad);
   if (cmpMeta.$flags$ & 2 /* scopedCssEncapsulation */) {
     const children = rootVnode.$elm$.__childNodes || rootVnode.$elm$.childNodes;
@@ -1849,6 +1919,3 @@ var bootstrapLazy = (lazyBundles, options = {}) => {
 var setNonce = (nonce) => plt.$nonce$ = nonce;
 
 export { Host as H, H as a, bootstrapLazy as b, globalScripts as g, h, promiseResolve as p, registerInstance as r, setNonce as s };
-//# sourceMappingURL=index-Bb3T4rNo.js.map
-
-//# sourceMappingURL=index-Bb3T4rNo.js.map

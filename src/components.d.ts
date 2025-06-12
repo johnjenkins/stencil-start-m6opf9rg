@@ -6,45 +6,45 @@
  */
 import { HTMLStencilElement, JSXBase } from "@stencil/core/internal";
 export namespace Components {
-    interface ExampleScoped {
+    interface CmpChild {
     }
-    interface ExampleShadow {
+    interface CmpParent {
     }
 }
 declare global {
-    interface HTMLExampleScopedElement extends Components.ExampleScoped, HTMLStencilElement {
+    interface HTMLCmpChildElement extends Components.CmpChild, HTMLStencilElement {
     }
-    var HTMLExampleScopedElement: {
-        prototype: HTMLExampleScopedElement;
-        new (): HTMLExampleScopedElement;
+    var HTMLCmpChildElement: {
+        prototype: HTMLCmpChildElement;
+        new (): HTMLCmpChildElement;
     };
-    interface HTMLExampleShadowElement extends Components.ExampleShadow, HTMLStencilElement {
+    interface HTMLCmpParentElement extends Components.CmpParent, HTMLStencilElement {
     }
-    var HTMLExampleShadowElement: {
-        prototype: HTMLExampleShadowElement;
-        new (): HTMLExampleShadowElement;
+    var HTMLCmpParentElement: {
+        prototype: HTMLCmpParentElement;
+        new (): HTMLCmpParentElement;
     };
     interface HTMLElementTagNameMap {
-        "example-scoped": HTMLExampleScopedElement;
-        "example-shadow": HTMLExampleShadowElement;
+        "cmp-child": HTMLCmpChildElement;
+        "cmp-parent": HTMLCmpParentElement;
     }
 }
 declare namespace LocalJSX {
-    interface ExampleScoped {
+    interface CmpChild {
     }
-    interface ExampleShadow {
+    interface CmpParent {
     }
     interface IntrinsicElements {
-        "example-scoped": ExampleScoped;
-        "example-shadow": ExampleShadow;
+        "cmp-child": CmpChild;
+        "cmp-parent": CmpParent;
     }
 }
 export { LocalJSX as JSX };
 declare module "@stencil/core" {
     export namespace JSX {
         interface IntrinsicElements {
-            "example-scoped": LocalJSX.ExampleScoped & JSXBase.HTMLAttributes<HTMLExampleScopedElement>;
-            "example-shadow": LocalJSX.ExampleShadow & JSXBase.HTMLAttributes<HTMLExampleShadowElement>;
+            "cmp-child": LocalJSX.CmpChild & JSXBase.HTMLAttributes<HTMLCmpChildElement>;
+            "cmp-parent": LocalJSX.CmpParent & JSXBase.HTMLAttributes<HTMLCmpParentElement>;
         }
     }
 }

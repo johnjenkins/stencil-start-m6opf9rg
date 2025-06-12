@@ -16,8 +16,11 @@ export const config: Config = {
     {
       type: 'dist',
     },
+    {
+      type: 'dist-custom-elements',
+    }
   ],
-  sourceMap: true,
+  sourceMap: false,
   minifyJs: false,
   hashFileNames: false,
   devServer: {

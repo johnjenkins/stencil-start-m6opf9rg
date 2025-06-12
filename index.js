@@ -21,10 +21,7 @@ app.engine('.html', function (filePath, opts, callback) {
 
     return hydrate
       .renderToString(htmlString, {
-        serializeShadowRoot: {
-          default: 'declarative-shadow-dom',
-          scoped: ['example-scoped'],
-        },
+        serializeShadowRoot: 'scoped',
         language: 'en-US',
         direction: 'ltr',
         runtimeLogging: true,
@@ -32,7 +29,7 @@ app.engine('.html', function (filePath, opts, callback) {
         prettyHtml: true,
       })
       .then((resp) => {
-        console.log('incoming html', htmlString);
+        // console.log('incoming html', htmlString);
         console.log('generated html', resp.html);
         return callback(null, resp.html);
       });

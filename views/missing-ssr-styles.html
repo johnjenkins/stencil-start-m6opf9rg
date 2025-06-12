@@ -2,9 +2,11 @@
 
 <h1><%= title %> demo</h1>
 
-<example-shadow></example-shadow>
-Same component but outside of shadow DOM:
-<br />
-<example-scoped></example-scoped>
+<cmp-parent>
+  <cmp-child>
+    <p slot="two">Slot 2</p>
+    <p slot="one">Slot 1</p>
+  </cmp-child>
+</cmp-parent>
 
 <%- include('footer.ejs') -%>

@@ -1,7 +1,7 @@
 import { Component, Host, h } from '@stencil/core';
 
 @Component({
-  tag: 'example-scoped',
+  tag: 'cmp-child',
   shadow: true,
   styles: `:host {
     display: block;
@@ -10,6 +10,10 @@ import { Component, Host, h } from '@stencil/core';
 })
 export class MyApp {
   render() {
-    return <Host>I should be red</Host>;
+    return <Host>
+      <slot />
+      <slot name="one" />
+      <slot name="two" />
+    </Host>;
   }
 }
