@@ -1,4 +1,4 @@
-import { r as registerInstance, h, H as Host } from './index-wUfLcMN7.js';
+import { r as registerInstance, h, H as Host } from './index-CHh0OtH-.js';
 
 const MyApp = class {
     constructor(hostRef) {

@@ -5,7 +5,7 @@ const globalScripts = () => {};
 const globalStyles = "";
 
 /*
- Stencil Client Platform v4.35.0-dev.1749838979.0d43336 | MIT Licensed | https://stenciljs.com
+ Stencil Client Platform v4.35.0 | MIT Licensed | https://stenciljs.com
  */
 var __defProp = Object.defineProperty;
 var __export = (target, all) => {
