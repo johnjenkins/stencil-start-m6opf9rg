@@ -128,7 +128,7 @@ const NAMESPACE = 'myapp';
 const BUILD = /* myapp */ { hydratedSelectorName: "hydrated", slotRelocation: true, updatable: true, watchCallback: false };
 
 /*
- Stencil Hydrate Platform v4.34.0 | MIT Licensed | https://stenciljs.com
+ Stencil Hydrate Platform v4.35.0-dev.1749838979.0d43336 | MIT Licensed | https://stenciljs.com
  */
 var __defProp = Object.defineProperty;
 var __export = (target, all) => {
@@ -687,7 +687,7 @@ var initializeClientHydrate = (hostElm, tagName, hostId, hostRef) => {
         shadowRoot.appendChild(shadowRootNodes[rnIdex]);
       }
       Array.from(hostElm.childNodes).forEach((node) => {
-        if (typeof node["s-sn"] !== "string") {
+        if (typeof node["s-en"] !== "string" && typeof node["s-sn"] !== "string") {
           if (node.nodeType === 1 /* ElementNode */ && node.slot && node.hidden) {
             node.removeAttribute("hidden");
           } else if (node.nodeType === 8 /* CommentNode */ || node.nodeType === 3 /* TextNode */ && !node.wholeText.trim()) {
@@ -967,6 +967,12 @@ var findCorrespondingNode = (node, type) => {
 var safeSelector = (selector) => {
   const placeholders = [];
   let index = 0;
+  selector = selector.replace(/(\[\s*part~=\s*("[^"]*"|'[^']*')\s*\])/g, (_, keep) => {
+    const replaceBy = `__part-${index}__`;
+    placeholders.push(keep);
+    index++;
+    return replaceBy;
+  });
   selector = selector.replace(/(\[[^\]]*\])/g, (_, keep) => {
     const replaceBy = `__ph-${index}__`;
     placeholders.push(keep);
@@ -986,6 +992,7 @@ var safeSelector = (selector) => {
   return ss;
 };
 var restoreSafeSelector = (placeholders, content) => {
+  content = content.replace(/__part-(\d+)__/g, (_, index) => placeholders[+index]);
   return content.replace(/__ph-(\d+)__/g, (_, index) => placeholders[+index]);
 };
 var _polyfillHost = "-shadowcsshost";
@@ -998,6 +1005,7 @@ var _cssColonSlottedRe = new RegExp("(" + _polyfillSlotted + _parenSuffix, "gim"
 var _polyfillHostNoCombinator = _polyfillHost + "-no-combinator";
 var _polyfillHostNoCombinatorRe = /-shadowcsshost-no-combinator([^\s]*)/;
 var _shadowDOMSelectorsRe = [/::shadow/g, /::content/g];
+var _safePartRe = /__part-(\d+)__/g;
 var _selectorReSuffix = "([>\\s~+[.,{:][\\s\\S]*)?$";
 var _polyfillHostRe = /-shadowcsshost/gim;
 var createSupportsRuleRe = (selector) => {
@@ -1212,7 +1220,7 @@ var applyStrictSelectorScope = (selector, scopeSelector2, hostSelector) => {
   let scopedSelector = "";
   let startIndex = 0;
   let res;
-  const sep = /( |>|\+|~(?!=))\s*/g;
+  const sep = /( |>|\+|~(?!=))(?=(?:[^()]*\([^()]*\))*[^()]*$)\s*/g;
   const hasHost = selector.indexOf(_polyfillHostNoCombinator) > -1;
   let shouldScope = !hasHost;
   while ((res = sep.exec(selector)) !== null) {
@@ -1224,7 +1232,7 @@ var applyStrictSelectorScope = (selector, scopeSelector2, hostSelector) => {
     startIndex = sep.lastIndex;
   }
   const part = selector.substring(startIndex);
-  shouldScope = shouldScope || part.indexOf(_polyfillHostNoCombinator) > -1;
+  shouldScope = !part.match(_safePartRe) && (shouldScope || part.indexOf(_polyfillHostNoCombinator) > -1);
   scopedSelector += shouldScope ? _scopeSelectorPart(part) : part;
   return restoreSafeSelector(safeContent.placeholders, scopedSelector);
 };
@@ -1281,6 +1289,36 @@ var scopeCssText = (cssText, scopeId2, hostScopeId, slotScopeId, commentOriginal
 var replaceShadowCssHost = (cssText, hostScopeId) => {
   return cssText.replace(/-shadowcsshost-no-combinator/g, `.${hostScopeId}`);
 };
+var expandPartSelectors = (cssText) => {
+  const partSelectorRe = /([^\s,{][^,{]*?)::part\(\s*([^)]+?)\s*\)((?:[:.][^,{]*)*)/g;
+  return processRules(cssText, (rule) => {
+    if (rule.selector[0] === "@") {
+      return rule;
+    }
+    const selectors = rule.selector.split(",").map((sel) => {
+      let out = [sel.trim()];
+      let m;
+      while ((m = partSelectorRe.exec(sel)) !== null) {
+        const before = m[1].trimEnd();
+        const partNames = m[2].trim().split(/\s+/);
+        const after = m[3] || "";
+        const partAttr = partNames.flatMap((p) => {
+          if (!rule.selector.includes(`[part~="${p}"]`)) {
+            return [`[part~="${p}"]`];
+          }
+          return [];
+        }).join("");
+        const expanded = `${before} ${partAttr}${after}`;
+        if (!!partAttr && expanded !== sel.trim()) {
+          out.push(expanded);
+        }
+      }
+      return out.join(", ");
+    });
+    rule.selector = selectors.join(", ");
+    return rule;
+  });
+};
 var scopeCss = (cssText, scopeId2, commentOriginalSelector) => {
   const hostScopeId = scopeId2 + "-h";
   const slotScopeId = scopeId2 + "-s";
@@ -1316,6 +1354,7 @@ var scopeCss = (cssText, scopeId2, commentOriginalSelector) => {
     const regex = new RegExp(escapeRegExpSpecialCharacters(slottedSelector.orgSelector), "g");
     cssText = cssText.replace(regex, slottedSelector.updatedSelector);
   });
+  cssText = expandPartSelectors(cssText);
   return cssText;
 };
 var parsePropertyValue = (propValue, propType, isFormAssociated) => {
@@ -2222,8 +2261,12 @@ var initializeComponent = async (elm, hostRef, cmpMeta, hmrVersionId) => {
       const scopeId2 = getScopeId(cmpMeta);
       if (!styles.has(scopeId2)) {
         const endRegisterStyles = createTime("registerStyles", cmpMeta.$tagName$);
-        if (cmpMeta.$flags$ & 128 /* shadowNeedsScopedCss */) {
-          style = scopeCss(style, scopeId2);
+        {
+          if (cmpMeta.$flags$ & 128 /* shadowNeedsScopedCss */) {
+            style = scopeCss(style, scopeId2);
+          } else if (needsScopedSSR()) {
+            style = expandPartSelectors(style);
+          }
         }
         registerStyle(scopeId2, style);
         endRegisterStyles();
@@ -2561,6 +2604,7 @@ function hydrateApp(win2, opts, results, afterHydrate, resolve) {
   const orgDocumentCreateElement = win2.document.createElement;
   const orgDocumentCreateElementNS = win2.document.createElementNS;
   const resolved2 = Promise.resolve();
+  setScopedSSR(opts);
   let tmrId;
   let ranCompleted = false;
   function hydratedComplete() {
@@ -2908,13 +2952,18 @@ var registerHost = (elm, cmpMeta) => {
   return hostRef;
 };
 var styles = /* @__PURE__ */ new Map();
+var setScopedSSR = (opts) => {
+  scopedSSR = (opts.serializeShadowRoot !== false && opts.serializeShadowRoot !== "declarative-shadow-dom");
+};
+var needsScopedSSR = () => scopedSSR;
+var scopedSSR = false;
 
 let MyApp$1 = class MyApp {
     constructor(hostRef) {
         registerInstance(this, hostRef);
     }
     render() {
-        return hAsync(Host, { key: 'af55acc173c0a5625cb1e3eed79f760e791b5865' }, hAsync("slot", { key: '61ab29fb85e74ff93b823299be58ddf128b98c6a' }), hAsync("slot", { key: '7aed4b1b6830222713367ff8a578a93baaeec1c3', name: "one" }), hAsync("slot", { key: '6bc213a94331472009648d7f943fce4ff7837b11', name: "two" }));
+        return hAsync(Host, { key: 'af55acc173c0a5625cb1e3eed79f760e791b5865' }, hAsync("slot", { key: '61ab29fb85e74ff93b823299be58ddf128b98c6a' }), hAsync("slot", { key: '7aed4b1b6830222713367ff8a578a93baaeec1c3', name: "one" }), hAsync("slot", { key: '6bc213a94331472009648d7f943fce4ff7837b11', name: "two" }), hAsync("button", { key: '6c2d5261caf3856d23975b360dbb5e7d2655aff4', part: "button" }, "Click me"));
     }
     static get style() { return ":host {\n    display: block;\n    border: 3px solid red;\n  }"; }
     static get cmpMeta() { return {
@@ -2932,9 +2981,9 @@ class MyApp {
         registerInstance(this, hostRef);
     }
     render() {
-        return (hAsync(Host, { key: 'c2fc95d2756f35c7f41f62bed1f760b0fedef04d' }, hAsync("div", { key: 'ee95589c6e8f73cb8068bde314ccb00d2a5c0bb6' }, "I am a parent component. Here's my child:", hAsync("cmp-child", { key: '2fac43ab579af35ef6177ee6f172cf1b0ce151b2' }, hAsync("slot", { key: 'c904163fa2631069f485eac64bf92af91e7eb7bb' })))));
+        return (hAsync(Host, { key: '6f52390e65194925fd94992bd7af66b18ddb276d' }, hAsync("div", { key: 'd6a0ba0b0cf7e679e7b8bafe44872716a1da82cc' }, "I am a parent component. Here's my child:", hAsync("cmp-child", { key: '815a9c14e480601a47f43496628ec3baedb9daa1' }, hAsync("slot", { key: '1491a1f1c16de3b5c3fe133d0fe47f94aa7375b4' })))));
     }
-    static get style() { return ":host {\n    display: block;\n    border: 3px solid blue;\n  }"; }
+    static get style() { return ":host {\n    display: block;\n    border: 3px solid blue;\n  }\n  cmp-child::part(button) {\n    background-color: blue;\n  }"; }
     static get cmpMeta() { return {
         "$flags$": 9,
         "$tagName$": "cmp-parent",
@@ -3047,7 +3096,7 @@ var NAMESPACE = (
 );
 
 /*
- Stencil Hydrate Runner v4.34.0 | MIT Licensed | https://stenciljs.com
+ Stencil Hydrate Runner v4.35.0-dev.1749838979.0d43336 | MIT Licensed | https://stenciljs.com
  */
 var __defProp = Object.defineProperty;
 var __export = (target, all) => {

@@ -5,7 +5,7 @@ const globalScripts = () => {};
 const globalStyles = "";
 
 /*
- Stencil Client Platform v4.34.0 | MIT Licensed | https://stenciljs.com
+ Stencil Client Platform v4.35.0-dev.1749838979.0d43336 | MIT Licensed | https://stenciljs.com
  */
 var __defProp = Object.defineProperty;
 var __export = (target, all) => {
@@ -746,7 +746,7 @@ var initializeClientHydrate = (hostElm, tagName, hostId, hostRef) => {
         shadowRoot.appendChild(shadowRootNodes[rnIdex]);
       }
       Array.from(hostElm.childNodes).forEach((node) => {
-        if (typeof node["s-sn"] !== "string") {
+        if (typeof node["s-en"] !== "string" && typeof node["s-sn"] !== "string") {
           if (node.nodeType === 1 /* ElementNode */ && node.slot && node.hidden) {
             node.removeAttribute("hidden");
           } else if (node.nodeType === 8 /* CommentNode */ || node.nodeType === 3 /* TextNode */ && !node.wholeText.trim()) {

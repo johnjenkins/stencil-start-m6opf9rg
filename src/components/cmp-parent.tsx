@@ -6,6 +6,9 @@ import { Component, Host, h } from '@stencil/core';
   styles: `:host {
     display: block;
     border: 3px solid blue;
+  }
+  cmp-child::part(button) {
+    background-color: blue;
   }`,
 })
 export class MyApp {

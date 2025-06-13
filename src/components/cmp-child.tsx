@@ -14,6 +14,7 @@ export class MyApp {
       <slot />
       <slot name="one" />
       <slot name="two" />
+      <button part="button">Click me</button>
     </Host>;
   }
 }

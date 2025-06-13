@@ -19,9 +19,17 @@ app.engine('.html', function (filePath, opts, callback) {
       }
     );
 
+    // {
+    //       default: 'declarative-shadow-dom',
+    //       scoped: ['cmp-child']
+    //     }
+
     return hydrate
       .renderToString(htmlString, {
-        serializeShadowRoot: 'scoped',
+        serializeShadowRoot: {
+          default: 'declarative-shadow-dom',
+          scoped: ['cmp-child']
+        },
         language: 'en-US',
         direction: 'ltr',
         runtimeLogging: true,
