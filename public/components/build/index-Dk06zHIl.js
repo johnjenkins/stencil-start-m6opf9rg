@@ -594,6 +594,12 @@ var h = (nodeName, vnodeData, ...children) => {
     if (vnodeData.key) {
       key = vnodeData.key;
     }
+    {
+      const classData = vnodeData.className || vnodeData.class;
+      if (classData) {
+        vnodeData.class = typeof classData !== "object" ? classData : Object.keys(classData).filter((k) => classData[k]).join(" ");
+      }
+    }
   }
   const vnode = newVNode(nodeName, null);
   vnode.$attrs$ = vnodeData;
@@ -1156,7 +1162,22 @@ var setAccessor = (elm, memberName, oldValue, newValue, isSvg, flags, initialRen
   }
   let isProp = isMemberInElement(elm, memberName);
   memberName.toLowerCase();
-  if (memberName === "key") ; else {
+  if (memberName === "class") {
+    const classList = elm.classList;
+    const oldClasses = parseClassList(oldValue);
+    let newClasses = parseClassList(newValue);
+    if (elm["s-si"] && initialRender) {
+      newClasses.push(elm["s-si"]);
+      oldClasses.forEach((c) => {
+        if (c.startsWith(elm["s-si"])) newClasses.push(c);
+      });
+      newClasses = [...new Set(newClasses)];
+      classList.add(...newClasses);
+    } else {
+      classList.remove(...oldClasses.filter((c) => c && !newClasses.includes(c)));
+      classList.add(...newClasses.filter((c) => c && !oldClasses.includes(c)));
+    }
+  } else if (memberName === "key") ; else {
     const isComplex = isComplexType(newValue);
     if ((isProp || isComplex && newValue !== null) && true) {
       try {
@@ -1191,6 +1212,16 @@ var setAccessor = (elm, memberName, oldValue, newValue, isSvg, flags, initialRen
     }
   }
 };
+var parseClassListRegex = /\s/;
+var parseClassList = (value) => {
+  if (typeof value === "object" && value && "baseVal" in value) {
+    value = value.baseVal;
+  }
+  if (!value || typeof value !== "string") {
+    return [];
+  }
+  return value.split(parseClassListRegex);
+};
 
 // src/runtime/vdom/update-element.ts
 var updateElement = (oldVnode, newVnode, isSvgMode2, isInitialRender) => {
@@ -1206,7 +1237,9 @@ var updateElement = (oldVnode, newVnode, isSvgMode2, isInitialRender) => {
           oldVnodeAttrs[memberName],
           void 0,
           isSvgMode2,
-          newVnode.$flags$);
+          newVnode.$flags$,
+          isInitialRender
+        );
       }
     }
   }
@@ -1217,7 +1250,9 @@ var updateElement = (oldVnode, newVnode, isSvgMode2, isInitialRender) => {
       oldVnodeAttrs[memberName],
       newVnodeAttrs[memberName],
       isSvgMode2,
-      newVnode.$flags$);
+      newVnode.$flags$,
+      isInitialRender
+    );
   }
 };
 function sortedAttrNames(attrNames) {
@@ -1419,7 +1454,7 @@ var patch = (oldVNode, newVNode2, isInitialRender = false) => {
           relocateToHostRoot(newVNode2.$elm$.parentElement);
         }
       }
-      updateElement(oldVNode, newVNode2, isSvgMode);
+      updateElement(oldVNode, newVNode2, isSvgMode, isInitialRender);
     }
     if (oldChildren !== null && newChildren !== null) {
       updateChildren(elm, oldChildren, newVNode2, newChildren, isInitialRender);

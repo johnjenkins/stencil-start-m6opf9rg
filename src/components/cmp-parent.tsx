@@ -16,10 +16,13 @@ export class MyApp {
     return (
       <Host>
         <div>
-          I am a parent component. Here's my child:
           <cmp-child>
-            <slot />
+            <slot name="things" />
+            <div class="AFTER">after</div>
           </cmp-child>
+          <div>
+            <slot />
+          </div>
         </div>
       </Host>
     );

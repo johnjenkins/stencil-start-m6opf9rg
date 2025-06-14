@@ -26,10 +26,7 @@ app.engine('.html', function (filePath, opts, callback) {
 
     return hydrate
       .renderToString(htmlString, {
-        serializeShadowRoot: {
-          default: 'declarative-shadow-dom',
-          scoped: ['cmp-child']
-        },
+        serializeShadowRoot: 'scoped',
         language: 'en-US',
         direction: 'ltr',
         runtimeLogging: true,
@@ -48,7 +45,7 @@ app.set('views', path.join(__dirname, 'views'));
 app.use(express.static(path.join(__dirname, 'public')));
 app.set('view engine', 'html');
 
-const buglist = ['missing-ssr-styles'];
+const buglist = ['incorrect-order'];
 
 buglist.forEach((bug) => {
   app.get('/' + bug, (req, res) => {

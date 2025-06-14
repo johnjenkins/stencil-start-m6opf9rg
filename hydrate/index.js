@@ -534,6 +534,12 @@ var h = (nodeName, vnodeData, ...children) => {
     if (vnodeData.name) {
       slotName = vnodeData.name;
     }
+    {
+      const classData = vnodeData.className || vnodeData.class;
+      if (classData) {
+        vnodeData.class = typeof classData !== "object" ? classData : Object.keys(classData).filter((k) => classData[k]).join(" ");
+      }
+    }
   }
   const vnode = newVNode(nodeName, null);
   vnode.$attrs$ = vnodeData;
@@ -1436,7 +1442,22 @@ var setAccessor = (elm, memberName, oldValue, newValue, isSvg, flags, initialRen
   }
   let isProp = isMemberInElement(elm, memberName);
   memberName.toLowerCase();
-  if (memberName === "key") ; else {
+  if (memberName === "class") {
+    const classList = elm.classList;
+    const oldClasses = parseClassList(oldValue);
+    let newClasses = parseClassList(newValue);
+    if (elm["s-si"] && initialRender) {
+      newClasses.push(elm["s-si"]);
+      oldClasses.forEach((c) => {
+        if (c.startsWith(elm["s-si"])) newClasses.push(c);
+      });
+      newClasses = [...new Set(newClasses)];
+      classList.add(...newClasses);
+    } else {
+      classList.remove(...oldClasses.filter((c) => c && !newClasses.includes(c)));
+      classList.add(...newClasses.filter((c) => c && !oldClasses.includes(c)));
+    }
+  } else if (memberName === "key") ; else {
     const isComplex = isComplexType(newValue);
     if ((isProp || isComplex && newValue !== null) && true) {
       try {
@@ -1471,6 +1492,16 @@ var setAccessor = (elm, memberName, oldValue, newValue, isSvg, flags, initialRen
     }
   }
 };
+var parseClassListRegex = /\s/;
+var parseClassList = (value) => {
+  if (typeof value === "object" && value && "baseVal" in value) {
+    value = value.baseVal;
+  }
+  if (!value || typeof value !== "string") {
+    return [];
+  }
+  return value.split(parseClassListRegex);
+};
 
 // src/runtime/vdom/update-element.ts
 var updateElement = (oldVnode, newVnode, isSvgMode2, isInitialRender) => {
@@ -1486,7 +1517,9 @@ var updateElement = (oldVnode, newVnode, isSvgMode2, isInitialRender) => {
           oldVnodeAttrs[memberName],
           void 0,
           isSvgMode2,
-          newVnode.$flags$);
+          newVnode.$flags$,
+          isInitialRender
+        );
       }
     }
   }
@@ -1497,7 +1530,9 @@ var updateElement = (oldVnode, newVnode, isSvgMode2, isInitialRender) => {
       oldVnodeAttrs[memberName],
       newVnodeAttrs[memberName],
       isSvgMode2,
-      newVnode.$flags$);
+      newVnode.$flags$,
+      isInitialRender
+    );
   }
 };
 function sortedAttrNames(attrNames) {
@@ -1763,7 +1798,7 @@ var patch = (oldVNode, newVNode2, isInitialRender = false) => {
   let defaultHolder;
   if (text === null) {
     {
-      updateElement(oldVNode, newVNode2, isSvgMode);
+      updateElement(oldVNode, newVNode2, isSvgMode, isInitialRender);
     }
     if (oldChildren !== null && newChildren !== null) {
       updateChildren(elm, oldChildren, newVNode2, newChildren, isInitialRender);
@@ -2916,7 +2951,7 @@ let MyApp$1 = class MyApp {
         registerInstance(this, hostRef);
     }
     render() {
-        return hAsync(Host, { key: 'af55acc173c0a5625cb1e3eed79f760e791b5865' }, hAsync("slot", { key: '61ab29fb85e74ff93b823299be58ddf128b98c6a' }), hAsync("slot", { key: '7aed4b1b6830222713367ff8a578a93baaeec1c3', name: "one" }), hAsync("slot", { key: '6bc213a94331472009648d7f943fce4ff7837b11', name: "two" }), hAsync("button", { key: '6c2d5261caf3856d23975b360dbb5e7d2655aff4', part: "button" }, "Click me"));
+        return hAsync(Host, { key: 'af55acc173c0a5625cb1e3eed79f760e791b5865' }, hAsync("div", { key: 'bae2f319034e34928fdf99bbf33c9ef42a8a0938' }, hAsync("slot", { key: 'ede3676d2b777f91161ce35d7c26f02d0329090f' })));
     }
     static get style() { return ":host {\n    display: block;\n    border: 3px solid red;\n  }"; }
     static get cmpMeta() { return {
@@ -2934,7 +2969,7 @@ class MyApp {
         registerInstance(this, hostRef);
     }
     render() {
-        return (hAsync(Host, { key: '6f52390e65194925fd94992bd7af66b18ddb276d' }, hAsync("div", { key: 'd6a0ba0b0cf7e679e7b8bafe44872716a1da82cc' }, "I am a parent component. Here's my child:", hAsync("cmp-child", { key: '815a9c14e480601a47f43496628ec3baedb9daa1' }, hAsync("slot", { key: '1491a1f1c16de3b5c3fe133d0fe47f94aa7375b4' })))));
+        return (hAsync(Host, { key: 'e1440b4e92606933923c365d86118ea98fc9766b' }, hAsync("div", { key: '946c42b34b9d16b3a087f4cf3640e0d8ceb67309' }, hAsync("cmp-child", { key: 'cb9e3ae31101f7e69c2dd7254cc88f13b828cdaf' }, hAsync("slot", { key: '51991654071d25cca59181bd1f1a8b6fbab010d9', name: "things" }), hAsync("div", { key: 'ba3ddfb30eec98bf1594b55d946f45b3f9983ded', class: "AFTER" }, "after")), hAsync("div", { key: 'd37929003735bdd9798f7df463d74e88da8fd85f' }, hAsync("slot", { key: '6ed4a9da2ee3250b1614b92b60d581d1b46ab6cf' })))));
     }
     static get style() { return ":host {\n    display: block;\n    border: 3px solid blue;\n  }\n  cmp-child::part(button) {\n    background-color: blue;\n  }"; }
     static get cmpMeta() { return {

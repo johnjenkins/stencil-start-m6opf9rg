@@ -1,11 +1,11 @@
-import { r as registerInstance, h, H as Host } from './index-CHh0OtH-.js';
+import { r as registerInstance, h, H as Host } from './index-Dk06zHIl.js';
 
 const MyApp = class {
     constructor(hostRef) {
         registerInstance(this, hostRef);
     }
     render() {
-        return (h(Host, { key: '6f52390e65194925fd94992bd7af66b18ddb276d' }, h("div", { key: 'd6a0ba0b0cf7e679e7b8bafe44872716a1da82cc' }, "I am a parent component. Here's my child:", h("cmp-child", { key: '815a9c14e480601a47f43496628ec3baedb9daa1' }, h("slot", { key: '1491a1f1c16de3b5c3fe133d0fe47f94aa7375b4' })))));
+        return (h(Host, { key: 'e1440b4e92606933923c365d86118ea98fc9766b' }, h("div", { key: '946c42b34b9d16b3a087f4cf3640e0d8ceb67309' }, h("cmp-child", { key: 'cb9e3ae31101f7e69c2dd7254cc88f13b828cdaf' }, h("slot", { key: '51991654071d25cca59181bd1f1a8b6fbab010d9', name: "things" }), h("div", { key: 'ba3ddfb30eec98bf1594b55d946f45b3f9983ded', class: "AFTER" }, "after")), h("div", { key: 'd37929003735bdd9798f7df463d74e88da8fd85f' }, h("slot", { key: '6ed4a9da2ee3250b1614b92b60d581d1b46ab6cf' })))));
     }
 };
 MyApp.style = ":host {\n    display: block;\n    border: 3px solid blue;\n  }\n  cmp-child::part(button) {\n    background-color: blue;\n  }";

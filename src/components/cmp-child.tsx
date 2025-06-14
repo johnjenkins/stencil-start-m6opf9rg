@@ -11,10 +11,9 @@ import { Component, Host, h } from '@stencil/core';
 export class MyApp {
   render() {
     return <Host>
-      <slot />
-      <slot name="one" />
-      <slot name="two" />
-      <button part="button">Click me</button>
+      <div>
+        <slot />
+      </div>
     </Host>;
   }
 }
