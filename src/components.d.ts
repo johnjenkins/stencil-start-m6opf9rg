@@ -10,6 +10,8 @@ export namespace Components {
     }
     interface CmpParent {
     }
+    interface CmpParentSimple {
+    }
 }
 declare global {
     interface HTMLCmpChildElement extends Components.CmpChild, HTMLStencilElement {
@@ -24,9 +26,16 @@ declare global {
         prototype: HTMLCmpParentElement;
         new (): HTMLCmpParentElement;
     };
+    interface HTMLCmpParentSimpleElement extends Components.CmpParentSimple, HTMLStencilElement {
+    }
+    var HTMLCmpParentSimpleElement: {
+        prototype: HTMLCmpParentSimpleElement;
+        new (): HTMLCmpParentSimpleElement;
+    };
     interface HTMLElementTagNameMap {
         "cmp-child": HTMLCmpChildElement;
         "cmp-parent": HTMLCmpParentElement;
+        "cmp-parent-simple": HTMLCmpParentSimpleElement;
     }
 }
 declare namespace LocalJSX {
@@ -34,9 +43,12 @@ declare namespace LocalJSX {
     }
     interface CmpParent {
     }
+    interface CmpParentSimple {
+    }
     interface IntrinsicElements {
         "cmp-child": CmpChild;
         "cmp-parent": CmpParent;
+        "cmp-parent-simple": CmpParentSimple;
     }
 }
 export { LocalJSX as JSX };
@@ -45,6 +57,7 @@ declare module "@stencil/core" {
         interface IntrinsicElements {
             "cmp-child": LocalJSX.CmpChild & JSXBase.HTMLAttributes<HTMLCmpChildElement>;
             "cmp-parent": LocalJSX.CmpParent & JSXBase.HTMLAttributes<HTMLCmpParentElement>;
+            "cmp-parent-simple": LocalJSX.CmpParentSimple & JSXBase.HTMLAttributes<HTMLCmpParentSimpleElement>;
         }
     }
 }

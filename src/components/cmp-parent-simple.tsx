@@ -1,7 +1,7 @@
 import { Component, Host, h } from '@stencil/core';
 
 @Component({
-  tag: 'cmp-parent',
+  tag: 'cmp-parent-simple',
   shadow: true,
   styles: `.PARENT {
     display: block;
@@ -16,9 +16,7 @@ export class MyApp {
     return (
       <Host>
         <div class="PARENT">
-          <cmp-child>
-            <slot />
-          </cmp-child>
+          <slot />
         </div>
       </Host>
     );

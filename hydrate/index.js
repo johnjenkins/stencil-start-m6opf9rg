@@ -130,7 +130,7 @@ const NAMESPACE = 'myapp';
 const BUILD = /* myapp */ { hydratedSelectorName: "hydrated", slotRelocation: true, updatable: true, watchCallback: false };
 
 /*
- Stencil Hydrate Platform v4.35.0 | MIT Licensed | https://stenciljs.com
+ Stencil Hydrate Platform v4.35.1 | MIT Licensed | https://stenciljs.com
  */
 var __defProp = Object.defineProperty;
 var __export = (target, all) => {
@@ -601,6 +601,16 @@ var initializeClientHydrate = (hostElm, tagName, hostId, hostRef) => {
       (_b = hostRef == null ? void 0 : hostRef.$instanceValues$) == null ? void 0 : _b.set(memberName, attrPropVal);
     }
   });
+  let scopeId2;
+  {
+    const cmpMeta = hostRef.$cmpMeta$;
+    if (cmpMeta && cmpMeta.$flags$ & 10 /* needsScopedEncapsulation */ && hostElm["s-sc"]) {
+      scopeId2 = hostElm["s-sc"];
+      hostElm.classList.add(scopeId2 + "-h");
+    } else if (hostElm["s-sc"]) {
+      delete hostElm["s-sc"];
+    }
+  }
   if (win.document && (!plt.$orgLocNodes$ || !plt.$orgLocNodes$.size)) {
     initializeDocumentHydrate(win.document.body, plt.$orgLocNodes$ = /* @__PURE__ */ new Map());
   }
@@ -687,6 +697,11 @@ var initializeClientHydrate = (hostElm, tagName, hostId, hostRef) => {
       }
     }
   }
+  if (scopeId2 && slotNodes.length) {
+    slotNodes.forEach((slot) => {
+      slot.$elm$.parentElement.classList.add(scopeId2 + "-s");
+    });
+  }
   if (shadowRoot && !shadowRoot.childNodes.length) {
     let rnIdex = 0;
     const rnLen = shadowRootNodes.length;
@@ -714,6 +729,7 @@ var clientHydrate = (parentVNode, childRenderNodes, slotNodes, shadowRootNodes, 
   let childIdSplt;
   let childVNode;
   let i2;
+  const scopeId2 = hostElm["s-sc"];
   if (node.nodeType === 1 /* ElementNode */) {
     childNodeType = node.getAttribute(HYDRATE_CHILD_ID);
     if (childNodeType) {
@@ -736,6 +752,10 @@ var clientHydrate = (parentVNode, childRenderNodes, slotNodes, shadowRootNodes, 
         if (!parentVNode.$children$) {
           parentVNode.$children$ = [];
         }
+        if (scopeId2) {
+          node["s-si"] = scopeId2;
+          childVNode.$attrs$.class += " " + scopeId2;
+        }
         const slotName = childVNode.$elm$.getAttribute("s-sn");
         if (typeof slotName === "string") {
           if (childVNode.$tag$ === "slot-fb") {
@@ -750,6 +770,9 @@ var clientHydrate = (parentVNode, childRenderNodes, slotNodes, shadowRootNodes, 
               shadowRootNodes,
               slottedNodes
             );
+            if (scopeId2) {
+              node.classList.add(scopeId2);
+            }
           }
           childVNode.$elm$["s-sn"] = slotName;
           childVNode.$elm$.removeAttribute("s-sn");
@@ -920,7 +943,7 @@ function addSlot(slotName, slotId, childVNode, node, parentVNode, childRenderNod
     if (parentNodeId && parentNodeId !== childVNode.$hostId$) {
       parentVNode.$elm$.insertBefore(slot, parentVNode.$elm$.children[0]);
     } else {
-      node.parentNode.insertBefore(childVNode.$elm$, node);
+      node.parentNode.insertBefore(slot, node);
     }
     addSlottedNodes(slottedNodes, slotId, slotName, node, childVNode.$hostId$);
     node.remove();
@@ -935,8 +958,8 @@ function addSlot(slotName, slotId, childVNode, node, parentVNode, childRenderNod
     if (shouldMove) {
       parentVNode.$elm$.insertBefore(slot, parentVNode.$elm$.children[0]);
     }
-    childRenderNodes.push(childVNode);
   }
+  childRenderNodes.push(childVNode);
   slotNodes.push(childVNode);
   if (!parentVNode.$children$) {
     parentVNode.$children$ = [];
@@ -975,6 +998,12 @@ var findCorrespondingNode = (node, type) => {
 var safeSelector = (selector) => {
   const placeholders = [];
   let index = 0;
+  selector = selector.replace(/(\[\s*part~=\s*("[^"]*"|'[^']*')\s*\])/g, (_, keep) => {
+    const replaceBy = `__part-${index}__`;
+    placeholders.push(keep);
+    index++;
+    return replaceBy;
+  });
   selector = selector.replace(/(\[[^\]]*\])/g, (_, keep) => {
     const replaceBy = `__ph-${index}__`;
     placeholders.push(keep);
@@ -994,6 +1023,7 @@ var safeSelector = (selector) => {
   return ss;
 };
 var restoreSafeSelector = (placeholders, content) => {
+  content = content.replace(/__part-(\d+)__/g, (_, index) => placeholders[+index]);
   return content.replace(/__ph-(\d+)__/g, (_, index) => placeholders[+index]);
 };
 var _polyfillHost = "-shadowcsshost";
@@ -1006,6 +1036,7 @@ var _cssColonSlottedRe = new RegExp("(" + _polyfillSlotted + _parenSuffix, "gim"
 var _polyfillHostNoCombinator = _polyfillHost + "-no-combinator";
 var _polyfillHostNoCombinatorRe = /-shadowcsshost-no-combinator([^\s]*)/;
 var _shadowDOMSelectorsRe = [/::shadow/g, /::content/g];
+var _safePartRe = /__part-(\d+)__/g;
 var _selectorReSuffix = "([>\\s~+[.,{:][\\s\\S]*)?$";
 var _polyfillHostRe = /-shadowcsshost/gim;
 var createSupportsRuleRe = (selector) => {
@@ -1220,7 +1251,7 @@ var applyStrictSelectorScope = (selector, scopeSelector2, hostSelector) => {
   let scopedSelector = "";
   let startIndex = 0;
   let res;
-  const sep = /( |>|\+|~(?!=))\s*/g;
+  const sep = /( |>|\+|~(?!=))(?=(?:[^()]*\([^()]*\))*[^()]*$)\s*/g;
   const hasHost = selector.indexOf(_polyfillHostNoCombinator) > -1;
   let shouldScope = !hasHost;
   while ((res = sep.exec(selector)) !== null) {
@@ -1232,7 +1263,7 @@ var applyStrictSelectorScope = (selector, scopeSelector2, hostSelector) => {
     startIndex = sep.lastIndex;
   }
   const part = selector.substring(startIndex);
-  shouldScope = shouldScope || part.indexOf(_polyfillHostNoCombinator) > -1;
+  shouldScope = !part.match(_safePartRe) && (shouldScope || part.indexOf(_polyfillHostNoCombinator) > -1);
   scopedSelector += shouldScope ? _scopeSelectorPart(part) : part;
   return restoreSafeSelector(safeContent.placeholders, scopedSelector);
 };
@@ -1289,6 +1320,36 @@ var scopeCssText = (cssText, scopeId2, hostScopeId, slotScopeId, commentOriginal
 var replaceShadowCssHost = (cssText, hostScopeId) => {
   return cssText.replace(/-shadowcsshost-no-combinator/g, `.${hostScopeId}`);
 };
+var expandPartSelectors = (cssText) => {
+  const partSelectorRe = /([^\s,{][^,{]*?)::part\(\s*([^)]+?)\s*\)((?:[:.][^,{]*)*)/g;
+  return processRules(cssText, (rule) => {
+    if (rule.selector[0] === "@") {
+      return rule;
+    }
+    const selectors = rule.selector.split(",").map((sel) => {
+      const out = [sel.trim()];
+      let m;
+      while ((m = partSelectorRe.exec(sel)) !== null) {
+        const before = m[1].trimEnd();
+        const partNames = m[2].trim().split(/\s+/);
+        const after = m[3] || "";
+        const partAttr = partNames.flatMap((p) => {
+          if (!rule.selector.includes(`[part~="${p}"]`)) {
+            return [`[part~="${p}"]`];
+          }
+          return [];
+        }).join("");
+        const expanded = `${before} ${partAttr}${after}`;
+        if (!!partAttr && expanded !== sel.trim()) {
+          out.push(expanded);
+        }
+      }
+      return out.join(", ");
+    });
+    rule.selector = selectors.join(", ");
+    return rule;
+  });
+};
 var scopeCss = (cssText, scopeId2, commentOriginalSelector) => {
   const hostScopeId = scopeId2 + "-h";
   const slotScopeId = scopeId2 + "-s";
@@ -1324,6 +1385,7 @@ var scopeCss = (cssText, scopeId2, commentOriginalSelector) => {
     const regex = new RegExp(escapeRegExpSpecialCharacters(slottedSelector.orgSelector), "g");
     cssText = cssText.replace(regex, slottedSelector.updatedSelector);
   });
+  cssText = expandPartSelectors(cssText);
   return cssText;
 };
 var parsePropertyValue = (propValue, propType, isFormAssociated) => {
@@ -1440,7 +1502,7 @@ var setAccessor = (elm, memberName, oldValue, newValue, isSvg, flags, initialRen
   if (oldValue === newValue) {
     return;
   }
-  let isProp = isMemberInElement(elm, memberName);
+  isMemberInElement(elm, memberName);
   memberName.toLowerCase();
   if (memberName === "class") {
     const classList = elm.classList;
@@ -1456,39 +1518,6 @@ var setAccessor = (elm, memberName, oldValue, newValue, isSvg, flags, initialRen
     } else {
       classList.remove(...oldClasses.filter((c) => c && !newClasses.includes(c)));
       classList.add(...newClasses.filter((c) => c && !oldClasses.includes(c)));
-    }
-  } else if (memberName === "key") ; else {
-    const isComplex = isComplexType(newValue);
-    if ((isProp || isComplex && newValue !== null) && true) {
-      try {
-        if (!elm.tagName.includes("-")) {
-          const n = newValue == null ? "" : newValue;
-          if (memberName === "list") {
-            isProp = false;
-          } else if (oldValue == null || elm[memberName] != n) {
-            if (typeof elm.__lookupSetter__(memberName) === "function") {
-              elm[memberName] = n;
-            } else {
-              elm.setAttribute(memberName, n);
-            }
-          }
-        } else if (elm[memberName] !== newValue) {
-          elm[memberName] = newValue;
-        }
-      } catch (e) {
-      }
-    }
-    if (newValue == null || newValue === false) {
-      if (newValue !== false || elm.getAttribute(memberName) === "") {
-        {
-          elm.removeAttribute(memberName);
-        }
-      }
-    } else if ((!isProp || flags & 4 /* isHost */ || isSvg) && !isComplex && elm.nodeType === 1 /* ElementNode */) {
-      newValue = newValue === true ? "" : newValue;
-      {
-        elm.setAttribute(memberName, newValue);
-      }
     }
   }
 };
@@ -1575,9 +1604,7 @@ var createElm = (oldParentVNode, newParentVNode, childIndex) => {
       );
     }
   }
-  if (newVNode2.$text$ !== null) {
-    elm = newVNode2.$elm$ = win.document.createTextNode(newVNode2.$text$);
-  } else if (newVNode2.$flags$ & 1 /* isSlotReference */) {
+  if (newVNode2.$flags$ & 1 /* isSlotReference */) {
     elm = newVNode2.$elm$ = slotReferenceDebugNode(newVNode2) ;
     {
       updateElement(null, newVNode2, isSvgMode);
@@ -1794,18 +1821,13 @@ var patch = (oldVNode, newVNode2, isInitialRender = false) => {
   const elm = newVNode2.$elm$ = oldVNode.$elm$;
   const oldChildren = oldVNode.$children$;
   const newChildren = newVNode2.$children$;
-  const text = newVNode2.$text$;
-  let defaultHolder;
-  if (text === null) {
+  {
     {
       updateElement(oldVNode, newVNode2, isSvgMode, isInitialRender);
     }
     if (oldChildren !== null && newChildren !== null) {
       updateChildren(elm, oldChildren, newVNode2, newChildren, isInitialRender);
     } else if (newChildren !== null) {
-      if (oldVNode.$text$ !== null) {
-        elm.textContent = "";
-      }
       addVnodes(elm, null, newVNode2, newChildren, 0, newChildren.length - 1);
     } else if (
       // don't do this on initial render as it can cause non-hydrated content to be removed
@@ -1813,10 +1835,6 @@ var patch = (oldVNode, newVNode2, isInitialRender = false) => {
     ) {
       removeVnodes(oldChildren, 0, oldChildren.length - 1);
     }
-  } else if ((defaultHolder = elm["s-cr"])) {
-    defaultHolder.parentNode.textContent = text;
-  } else if (oldVNode.$text$ !== text) {
-    elm.data = text;
   }
 };
 var relocateNodes = [];
@@ -1870,6 +1888,9 @@ var markSlotContentForRelocation = (elm) => {
   }
 };
 var insertBefore = (parent, newNode, reference) => {
+  if (typeof newNode["s-sn"] === "string" && !!newNode["s-sr"] && !!newNode["s-cr"]) {
+    addRemoveSlotScopedClass(newNode["s-cr"], newNode, parent, newNode.parentElement);
+  }
   {
     return parent == null ? void 0 : parent.insertBefore(newNode, reference);
   }
@@ -2259,8 +2280,12 @@ var initializeComponent = async (elm, hostRef, cmpMeta, hmrVersionId) => {
       const scopeId2 = getScopeId(cmpMeta);
       if (!styles.has(scopeId2)) {
         const endRegisterStyles = createTime("registerStyles", cmpMeta.$tagName$);
-        if (cmpMeta.$flags$ & 128 /* shadowNeedsScopedCss */) {
-          style = scopeCss(style, scopeId2);
+        {
+          if (cmpMeta.$flags$ & 128 /* shadowNeedsScopedCss */) {
+            style = scopeCss(style, scopeId2);
+          } else if (needsScopedSSR()) {
+            style = expandPartSelectors(style);
+          }
         }
         registerStyle(scopeId2, style);
         endRegisterStyles();
@@ -2296,6 +2321,9 @@ var connectedCallback = (elm) => {
           if (cmpMeta.$flags$ & 1 /* shadowDomEncapsulation */) {
             const scopeId2 = addStyle(elm.shadowRoot, cmpMeta);
             elm.classList.remove(scopeId2 + "-h", scopeId2 + "-s");
+          } else if (cmpMeta.$flags$ & 2 /* scopedCssEncapsulation */) {
+            const scopeId2 = getScopeId(cmpMeta);
+            elm["s-sc"] = scopeId2;
           }
           initializeClientHydrate(elm, cmpMeta.$tagName$, hostId, hostRef);
         }
@@ -2598,6 +2626,7 @@ function hydrateApp(win2, opts, results, afterHydrate, resolve) {
   const orgDocumentCreateElement = win2.document.createElement;
   const orgDocumentCreateElementNS = win2.document.createElementNS;
   const resolved2 = Promise.resolve();
+  setScopedSSR(opts);
   let tmrId;
   let ranCompleted = false;
   function hydratedComplete() {
@@ -2945,18 +2974,41 @@ var registerHost = (elm, cmpMeta) => {
   return hostRef;
 };
 var styles = /* @__PURE__ */ new Map();
+var setScopedSSR = (opts) => {
+  scopedSSR = opts.serializeShadowRoot !== false && opts.serializeShadowRoot !== "declarative-shadow-dom";
+};
+var needsScopedSSR = () => scopedSSR;
+var scopedSSR = false;
+
+let MyApp$2 = class MyApp {
+    constructor(hostRef) {
+        registerInstance(this, hostRef);
+    }
+    render() {
+        return hAsync(Host, { key: '8595afc7f12ed6463a25f797bc6091c77c8424f8' }, hAsync("div", { key: '42e13fde4f25680213a97867f5c1d7af668e2af1', class: "CHILD" }, hAsync("slot", { key: '92398c7d128f9b303cf29c17cc8c94722fa422dc' })));
+    }
+    static get style() { return ".sc-cmp-child-h {\n    display: block;\n    border: 3px solid red;\n  }"; }
+    static get cmpMeta() { return {
+        "$flags$": 6,
+        "$tagName$": "cmp-child",
+        "$members$": undefined,
+        "$listeners$": undefined,
+        "$lazyBundleId$": "-",
+        "$attrsToReflect$": []
+    }; }
+};
 
 let MyApp$1 = class MyApp {
     constructor(hostRef) {
         registerInstance(this, hostRef);
     }
     render() {
-        return hAsync(Host, { key: 'af55acc173c0a5625cb1e3eed79f760e791b5865' }, hAsync("div", { key: 'bae2f319034e34928fdf99bbf33c9ef42a8a0938' }, hAsync("slot", { key: 'ede3676d2b777f91161ce35d7c26f02d0329090f' })));
+        return (hAsync(Host, { key: '894161e45e1d61e62700278572402dd77720a2a9' }, hAsync("div", { key: '18a5b625b892f06329c05480b6e03c788794b70b', class: "PARENT" }, hAsync("cmp-child", { key: 'e6a8088a4b8f114a20a2448edd014884e64b8b8d' }, hAsync("slot", { key: '0ebf283ae0e6290020cf7e79404d4b0c268f27f9' })))));
     }
-    static get style() { return ":host {\n    display: block;\n    border: 3px solid red;\n  }"; }
+    static get style() { return ".PARENT {\n    display: block;\n    border: 3px solid blue;\n  }\n  cmp-child::part(button) {\n    background-color: blue;\n  }"; }
     static get cmpMeta() { return {
         "$flags$": 9,
-        "$tagName$": "cmp-child",
+        "$tagName$": "cmp-parent",
         "$members$": undefined,
         "$listeners$": undefined,
         "$lazyBundleId$": "-",
@@ -2969,12 +3021,12 @@ class MyApp {
         registerInstance(this, hostRef);
     }
     render() {
-        return (hAsync(Host, { key: 'e1440b4e92606933923c365d86118ea98fc9766b' }, hAsync("div", { key: '946c42b34b9d16b3a087f4cf3640e0d8ceb67309' }, hAsync("cmp-child", { key: 'cb9e3ae31101f7e69c2dd7254cc88f13b828cdaf' }, hAsync("slot", { key: '51991654071d25cca59181bd1f1a8b6fbab010d9', name: "things" }), hAsync("div", { key: 'ba3ddfb30eec98bf1594b55d946f45b3f9983ded', class: "AFTER" }, "after")), hAsync("div", { key: 'd37929003735bdd9798f7df463d74e88da8fd85f' }, hAsync("slot", { key: '6ed4a9da2ee3250b1614b92b60d581d1b46ab6cf' })))));
+        return (hAsync(Host, { key: '7031b28e8d9b87718d1cbdcad4d690e66a17fd00' }, hAsync("div", { key: '26ea9c59ebd1d72d1dee0be97cf2dfaa34213b8e', class: "PARENT" }, hAsync("slot", { key: 'afc75ef7878ab404bac496d19deccf87a41da1e2' }))));
     }
-    static get style() { return ":host {\n    display: block;\n    border: 3px solid blue;\n  }\n  cmp-child::part(button) {\n    background-color: blue;\n  }"; }
+    static get style() { return ".PARENT {\n    display: block;\n    border: 3px solid blue;\n  }\n  cmp-child::part(button) {\n    background-color: blue;\n  }"; }
     static get cmpMeta() { return {
         "$flags$": 9,
-        "$tagName$": "cmp-parent",
+        "$tagName$": "cmp-parent-simple",
         "$members$": undefined,
         "$listeners$": undefined,
         "$lazyBundleId$": "-",
@@ -2983,6 +3035,7 @@ class MyApp {
 }
 
 registerComponents([
+  MyApp$2,
   MyApp$1,
   MyApp,
 ]);
@@ -3084,7 +3137,7 @@ var NAMESPACE = (
 );
 
 /*
- Stencil Hydrate Runner v4.35.0 | MIT Licensed | https://stenciljs.com
+ Stencil Hydrate Runner v4.35.1 | MIT Licensed | https://stenciljs.com
  */
 var __defProp = Object.defineProperty;
 var __export = (target, all) => {
@@ -3809,8 +3862,21 @@ function triggerEventListener(elm, ev) {
   } else if (elm.parentElement == null && elm.tagName === "HTML") {
     triggerEventListener(elm.ownerDocument, ev);
   } else {
-    triggerEventListener(elm.parentElement, ev);
+    const nextTarget = getNextEventTarget(elm, ev);
+    triggerEventListener(nextTarget, ev);
   }
+}
+function getNextEventTarget(elm, ev) {
+  if (elm.parentElement) {
+    return elm.parentElement;
+  }
+  if (elm.host && ev.composed) {
+    return elm.host;
+  }
+  if (ev.composed && elm.parentNode && elm.parentNode.host) {
+    return elm.parentNode.host;
+  }
+  return null;
 }
 function dispatchEvent(currentTarget, ev) {
   ev.target = currentTarget;
