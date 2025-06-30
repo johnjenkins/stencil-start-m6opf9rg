@@ -1,8 +1,8 @@
-import { p as promiseResolve, a as H, g as globalScripts, b as bootstrapLazy } from './index-CHh0OtH-.js';
-export { s as setNonce } from './index-CHh0OtH-.js';
+import { p as promiseResolve, a as H, g as globalScripts, b as bootstrapLazy } from './index-Boaou4Jc.js';
+export { s as setNonce } from './index-Boaou4Jc.js';
 
 /*
- Stencil Client Patch Browser v4.35.0 | MIT Licensed | https://stenciljs.com
+ Stencil Client Patch Browser v4.35.1-dev.1750682262.1ce9541 | MIT Licensed | https://stenciljs.com
  */
 
 var patchBrowser = () => {
@@ -37,5 +37,5 @@ var patchCloneNodeFix = (HTMLElementPrototype) => {
 
 patchBrowser().then(async (options) => {
   await globalScripts();
-  return bootstrapLazy([["cmp-child",[[1,"cmp-child"]]],["cmp-parent",[[1,"cmp-parent"]]]], options);
+  return bootstrapLazy([["cmp-array-cmp",[[1,"cmp-array-cmp",{"anArray":[16,"an-array"]}]]]], options);
 });

@@ -1,11 +1,11 @@
 const NAMESPACE = 'myapp';
-const BUILD = /* myapp */ { hydratedSelectorName: "hydrated", updatable: true, watchCallback: false };
+const BUILD = /* myapp */ { hydratedSelectorName: "hydrated", lazyLoad: true, updatable: true, watchCallback: false };
 
 const globalScripts = () => {};
 const globalStyles = "";
 
 /*
- Stencil Client Platform v4.35.0 | MIT Licensed | https://stenciljs.com
+ Stencil Client Platform v4.35.1-dev.1750682262.1ce9541 | MIT Licensed | https://stenciljs.com
  */
 var __defProp = Object.defineProperty;
 var __export = (target, all) => {
@@ -64,7 +64,6 @@ var registerHost = (hostElement, cmpMeta) => {
   hostElement.__stencil__getHostRef = () => ref;
   return ref;
 };
-var isMemberInElement = (elm, memberName) => memberName in elm;
 var consoleError = (e, el) => (0, console.error)(e, el);
 
 // src/client/client-load-module.ts
@@ -565,6 +564,115 @@ var uniqueTime = (key, measureText) => {
     };
   }
 };
+var rootAppliedStyles = /* @__PURE__ */ new WeakMap();
+var registerStyle = (scopeId2, cssText, allowCS) => {
+  let style = styles.get(scopeId2);
+  if (supportsConstructableStylesheets && allowCS) {
+    style = style || new CSSStyleSheet();
+    if (typeof style === "string") {
+      style = cssText;
+    } else {
+      style.replaceSync(cssText);
+    }
+  } else {
+    style = cssText;
+  }
+  styles.set(scopeId2, style);
+};
+var addStyle = (styleContainerNode, cmpMeta, mode) => {
+  var _a;
+  const scopeId2 = getScopeId(cmpMeta);
+  const style = styles.get(scopeId2);
+  if (!win.document) {
+    return scopeId2;
+  }
+  styleContainerNode = styleContainerNode.nodeType === 11 /* DocumentFragment */ ? styleContainerNode : win.document;
+  if (style) {
+    if (typeof style === "string") {
+      styleContainerNode = styleContainerNode.head || styleContainerNode;
+      let appliedStyles = rootAppliedStyles.get(styleContainerNode);
+      let styleElm;
+      if (!appliedStyles) {
+        rootAppliedStyles.set(styleContainerNode, appliedStyles = /* @__PURE__ */ new Set());
+      }
+      if (!appliedStyles.has(scopeId2)) {
+        if (styleContainerNode.host && (styleElm = styleContainerNode.querySelector(`[${HYDRATED_STYLE_ID}="${scopeId2}"]`))) {
+          styleElm.innerHTML = style;
+        } else {
+          styleElm = win.document.createElement("style");
+          styleElm.innerHTML = style;
+          const nonce = (_a = plt.$nonce$) != null ? _a : queryNonceMetaTagContent(win.document);
+          if (nonce != null) {
+            styleElm.setAttribute("nonce", nonce);
+          }
+          if (!(cmpMeta.$flags$ & 1 /* shadowDomEncapsulation */)) {
+            if (styleContainerNode.nodeName === "HEAD") {
+              const preconnectLinks = styleContainerNode.querySelectorAll("link[rel=preconnect]");
+              const referenceNode2 = preconnectLinks.length > 0 ? preconnectLinks[preconnectLinks.length - 1].nextSibling : styleContainerNode.querySelector("style");
+              styleContainerNode.insertBefore(
+                styleElm,
+                (referenceNode2 == null ? void 0 : referenceNode2.parentNode) === styleContainerNode ? referenceNode2 : null
+              );
+            } else if ("host" in styleContainerNode) {
+              if (supportsConstructableStylesheets) {
+                const stylesheet = new CSSStyleSheet();
+                stylesheet.replaceSync(style);
+                styleContainerNode.adoptedStyleSheets = [stylesheet, ...styleContainerNode.adoptedStyleSheets];
+              } else {
+                const existingStyleContainer = styleContainerNode.querySelector("style");
+                if (existingStyleContainer) {
+                  existingStyleContainer.innerHTML = style + existingStyleContainer.innerHTML;
+                } else {
+                  styleContainerNode.prepend(styleElm);
+                }
+              }
+            } else {
+              styleContainerNode.append(styleElm);
+            }
+          }
+          if (cmpMeta.$flags$ & 1 /* shadowDomEncapsulation */) {
+            styleContainerNode.insertBefore(styleElm, null);
+          }
+        }
+        if (cmpMeta.$flags$ & 4 /* hasSlotRelocation */) {
+          styleElm.innerHTML += SLOT_FB_CSS;
+        }
+        if (appliedStyles) {
+          appliedStyles.add(scopeId2);
+        }
+      }
+    } else if (!styleContainerNode.adoptedStyleSheets.includes(style)) {
+      styleContainerNode.adoptedStyleSheets = [...styleContainerNode.adoptedStyleSheets, style];
+    }
+  }
+  return scopeId2;
+};
+var attachStyles = (hostRef) => {
+  const cmpMeta = hostRef.$cmpMeta$;
+  const elm = hostRef.$hostElement$;
+  const flags = cmpMeta.$flags$;
+  const endAttachStyles = createTime("attachStyles", cmpMeta.$tagName$);
+  const scopeId2 = addStyle(
+    elm.shadowRoot ? elm.shadowRoot : elm.getRootNode(),
+    cmpMeta);
+  if (flags & 10 /* needsScopedEncapsulation */) {
+    elm["s-sc"] = scopeId2;
+    elm.classList.add(scopeId2 + "-h");
+  }
+  endAttachStyles();
+};
+var getScopeId = (cmp, mode) => "sc-" + (cmp.$tagName$);
+var convertScopedToShadow = (css) => css.replace(/\/\*!@([^\/]+)\*\/[^\{]+\{/g, "$1{");
+var hydrateScopedToShadow = () => {
+  if (!win.document) {
+    return;
+  }
+  const styles2 = win.document.querySelectorAll(`[${HYDRATED_STYLE_ID}]`);
+  let i2 = 0;
+  for (; i2 < styles2.length; i2++) {
+    registerStyle(styles2[i2].getAttribute(HYDRATED_STYLE_ID), convertScopedToShadow(styles2[i2].innerHTML), true);
+  }
+};
 var h = (nodeName, vnodeData, ...children) => {
   let child = null;
   let key = null;
@@ -626,7 +734,7 @@ var isHost = (node) => node && node.$tag$ === Host;
 
 // src/runtime/client-hydrate.ts
 var initializeClientHydrate = (hostElm, tagName, hostId, hostRef) => {
-  var _a;
+  var _a, _b;
   const endHydrate = createTime("hydrateClient", tagName);
   const shadowRoot = hostElm.shadowRoot;
   const childRenderNodes = [];
@@ -637,7 +745,7 @@ var initializeClientHydrate = (hostElm, tagName, hostId, hostRef) => {
   vnode.$elm$ = hostElm;
   const members = Object.entries(((_a = hostRef.$cmpMeta$) == null ? void 0 : _a.$members$) || {});
   members.forEach(([memberName, [memberFlags, metaAttributeName]]) => {
-    var _b;
+    var _b2;
     if (!(memberFlags & 31 /* Prop */)) {
       return;
     }
@@ -646,7 +754,7 @@ var initializeClientHydrate = (hostElm, tagName, hostId, hostRef) => {
     if (attrVal !== null) {
       const attrPropVal = parsePropertyValue(
         attrVal);
-      (_b = hostRef == null ? void 0 : hostRef.$instanceValues$) == null ? void 0 : _b.set(memberName, attrPropVal);
+      (_b2 = hostRef == null ? void 0 : hostRef.$instanceValues$) == null ? void 0 : _b2.set(memberName, attrPropVal);
     }
   });
   if (win.document && (!plt.$orgLocNodes$ || !plt.$orgLocNodes$.size)) {
@@ -677,6 +785,14 @@ var initializeClientHydrate = (hostElm, tagName, hostId, hostRef) => {
       if (childRenderNode.$tag$ === "slot") {
         node["s-cr"] = hostElm["s-cr"];
       }
+    } else if (((_b = childRenderNode.$tag$) == null ? void 0 : _b.toString().includes("-")) && !childRenderNode.$elm$.shadowRoot) {
+      const cmpMeta = getHostRef(childRenderNode.$elm$);
+      const scopeId3 = getScopeId(
+        cmpMeta.$cmpMeta$);
+      const styleSheet = win.document.querySelector(`style[sty-id="${scopeId3}"]`);
+      if (styleSheet) {
+        hostElm.shadowRoot.append(styleSheet.cloneNode(true));
+      }
     }
     if (childRenderNode.$tag$ === "slot") {
       childRenderNode.$name$ = childRenderNode.$elm$["s-sn"] || childRenderNode.$elm$["name"] || null;
@@ -692,7 +808,7 @@ var initializeClientHydrate = (hostElm, tagName, hostId, hostRef) => {
       }
     }
     if (orgLocationNode && orgLocationNode.isConnected) {
-      if (shadowRoot && orgLocationNode["s-en"] === "") {
+      if (orgLocationNode.parentElement.shadowRoot && orgLocationNode["s-en"] === "") {
         orgLocationNode.parentNode.insertBefore(node, orgLocationNode.nextSibling);
       }
       orgLocationNode.parentNode.removeChild(orgLocationNode);
@@ -700,7 +816,7 @@ var initializeClientHydrate = (hostElm, tagName, hostId, hostRef) => {
         node["s-oo"] = parseInt(childRenderNode.$nodeId$);
       }
     }
-    plt.$orgLocNodes$.delete(orgLocationId);
+    if (orgLocationNode && !orgLocationNode["s-id"]) plt.$orgLocNodes$.delete(orgLocationId);
   }
   const hosts = [];
   const snLen = slottedNodes.length;
@@ -722,11 +838,13 @@ var initializeClientHydrate = (hostElm, tagName, hostId, hostRef) => {
       if (!hosts[slottedItem.hostId]) continue;
       const hostEle = hosts[slottedItem.hostId];
       if (!hostEle.shadowRoot || !shadowRoot) {
-        slottedItem.slot["s-cr"] = hostEle["s-cr"];
-        if (!slottedItem.slot["s-cr"] && hostEle.shadowRoot) {
-          slottedItem.slot["s-cr"] = hostEle;
-        } else {
-          slottedItem.slot["s-cr"] = (hostEle.__childNodes || hostEle.childNodes)[0];
+        if (!slottedItem.slot["s-cr"]) {
+          slottedItem.slot["s-cr"] = hostEle["s-cr"];
+          if (!slottedItem.slot["s-cr"] && hostEle.shadowRoot) {
+            slottedItem.slot["s-cr"] = hostEle;
+          } else {
+            slottedItem.slot["s-cr"] = (hostEle.__childNodes || hostEle.childNodes)[0];
+          }
         }
         addSlotRelocateNode(slottedItem.node, slottedItem.slot, false, slottedItem.node["s-oo"]);
         {
@@ -738,7 +856,7 @@ var initializeClientHydrate = (hostElm, tagName, hostId, hostRef) => {
       }
     }
   }
-  if (shadowRoot && !shadowRoot.childNodes.length) {
+  if (shadowRoot) {
     let rnIdex = 0;
     const rnLen = shadowRootNodes.length;
     if (rnLen) {
@@ -749,14 +867,13 @@ var initializeClientHydrate = (hostElm, tagName, hostId, hostRef) => {
         if (typeof node["s-en"] !== "string" && typeof node["s-sn"] !== "string") {
           if (node.nodeType === 1 /* ElementNode */ && node.slot && node.hidden) {
             node.removeAttribute("hidden");
-          } else if (node.nodeType === 8 /* CommentNode */ || node.nodeType === 3 /* TextNode */ && !node.wholeText.trim()) {
+          } else if (node.nodeType === 8 /* CommentNode */ && !node.nodeValue || node.nodeType === 3 /* TextNode */ && !node.wholeText.trim()) {
             node.parentNode.removeChild(node);
           }
         }
       });
     }
   }
-  plt.$orgLocNodes$.delete(hostElm["s-id"]);
   hostRef.$hostElement$ = hostElm;
   endHydrate();
 };
@@ -907,7 +1024,7 @@ var clientHydrate = (parentVNode, childRenderNodes, slotNodes, shadowRootNodes, 
     vnode.$index$ = "0";
     parentVNode.$children$ = [vnode];
   } else {
-    if (node.nodeType === 3 /* TextNode */ && !node.wholeText.trim()) {
+    if (node.nodeType === 3 /* TextNode */ && !node.wholeText.trim() && !node["s-nr"]) {
       node.remove();
     }
   }
@@ -965,10 +1082,10 @@ function addSlot(slotName, slotId, childVNode, node, parentVNode, childRenderNod
     if (childVNode.$name$) {
       childVNode.$elm$.setAttribute("name", slotName);
     }
-    if (parentNodeId && parentNodeId !== childVNode.$hostId$) {
-      parentVNode.$elm$.insertBefore(slot, parentVNode.$elm$.children[0]);
+    if (parentVNode.$elm$.shadowRoot && parentNodeId && parentNodeId !== childVNode.$hostId$) {
+      internalCall(parentVNode.$elm$, "insertBefore")(slot, internalCall(parentVNode.$elm$, "children")[0]);
     } else {
-      node.parentNode.insertBefore(childVNode.$elm$, node);
+      internalCall(internalCall(node, "parentNode"), "insertBefore")(slot, node);
     }
     addSlottedNodes(slottedNodes, slotId, slotName, node, childVNode.$hostId$);
     node.remove();
@@ -983,8 +1100,8 @@ function addSlot(slotName, slotId, childVNode, node, parentVNode, childRenderNod
     if (shouldMove) {
       parentVNode.$elm$.insertBefore(slot, parentVNode.$elm$.children[0]);
     }
-    childRenderNodes.push(childVNode);
   }
+  childRenderNodes.push(childVNode);
   slotNodes.push(childVNode);
   if (!parentVNode.$children$) {
     parentVNode.$children$ = [];
@@ -994,7 +1111,7 @@ function addSlot(slotName, slotId, childVNode, node, parentVNode, childRenderNod
 var addSlottedNodes = (slottedNodes, slotNodeId, slotName, slotNode, hostId) => {
   let slottedNode = slotNode.nextSibling;
   slottedNodes[slotNodeId] = slottedNodes[slotNodeId] || [];
-  while (slottedNode && ((slottedNode["getAttribute"] && slottedNode.getAttribute("slot") || slottedNode["s-sn"]) === slotName || slotName === "" && !slottedNode["s-sn"] && (slottedNode.nodeType === 8 /* CommentNode */ && slottedNode.nodeValue.indexOf(".") !== 1 || slottedNode.nodeType === 3 /* TextNode */))) {
+  while (slottedNode && ((slottedNode["getAttribute"] && slottedNode.getAttribute("slot") || slottedNode["s-sn"]) === slotName || slotName === "" && !slottedNode["s-sn"] && (slottedNode.nodeType === 8 /* CommentNode */ || slottedNode.nodeType === 3 /* TextNode */ || slottedNode.tagName === "SLOT"))) {
     slottedNode["s-sn"] = slotName;
     slottedNodes[slotNodeId].push({ slot: slotNode, node: slottedNode, hostId });
     slottedNode = slottedNode.nextSibling;
@@ -1041,155 +1158,11 @@ var emitEvent = (elm, name, opts) => {
   elm.dispatchEvent(ev);
   return ev;
 };
-var rootAppliedStyles = /* @__PURE__ */ new WeakMap();
-var registerStyle = (scopeId2, cssText, allowCS) => {
-  let style = styles.get(scopeId2);
-  if (supportsConstructableStylesheets && allowCS) {
-    style = style || new CSSStyleSheet();
-    if (typeof style === "string") {
-      style = cssText;
-    } else {
-      style.replaceSync(cssText);
-    }
-  } else {
-    style = cssText;
-  }
-  styles.set(scopeId2, style);
-};
-var addStyle = (styleContainerNode, cmpMeta, mode) => {
-  var _a;
-  const scopeId2 = getScopeId(cmpMeta);
-  const style = styles.get(scopeId2);
-  if (!win.document) {
-    return scopeId2;
-  }
-  styleContainerNode = styleContainerNode.nodeType === 11 /* DocumentFragment */ ? styleContainerNode : win.document;
-  if (style) {
-    if (typeof style === "string") {
-      styleContainerNode = styleContainerNode.head || styleContainerNode;
-      let appliedStyles = rootAppliedStyles.get(styleContainerNode);
-      let styleElm;
-      if (!appliedStyles) {
-        rootAppliedStyles.set(styleContainerNode, appliedStyles = /* @__PURE__ */ new Set());
-      }
-      if (!appliedStyles.has(scopeId2)) {
-        if (styleContainerNode.host && (styleElm = styleContainerNode.querySelector(`[${HYDRATED_STYLE_ID}="${scopeId2}"]`))) {
-          styleElm.innerHTML = style;
-        } else {
-          styleElm = win.document.createElement("style");
-          styleElm.innerHTML = style;
-          const nonce = (_a = plt.$nonce$) != null ? _a : queryNonceMetaTagContent(win.document);
-          if (nonce != null) {
-            styleElm.setAttribute("nonce", nonce);
-          }
-          if (!(cmpMeta.$flags$ & 1 /* shadowDomEncapsulation */)) {
-            if (styleContainerNode.nodeName === "HEAD") {
-              const preconnectLinks = styleContainerNode.querySelectorAll("link[rel=preconnect]");
-              const referenceNode2 = preconnectLinks.length > 0 ? preconnectLinks[preconnectLinks.length - 1].nextSibling : styleContainerNode.querySelector("style");
-              styleContainerNode.insertBefore(
-                styleElm,
-                (referenceNode2 == null ? void 0 : referenceNode2.parentNode) === styleContainerNode ? referenceNode2 : null
-              );
-            } else if ("host" in styleContainerNode) {
-              if (supportsConstructableStylesheets) {
-                const stylesheet = new CSSStyleSheet();
-                stylesheet.replaceSync(style);
-                styleContainerNode.adoptedStyleSheets = [stylesheet, ...styleContainerNode.adoptedStyleSheets];
-              } else {
-                const existingStyleContainer = styleContainerNode.querySelector("style");
-                if (existingStyleContainer) {
-                  existingStyleContainer.innerHTML = style + existingStyleContainer.innerHTML;
-                } else {
-                  styleContainerNode.prepend(styleElm);
-                }
-              }
-            } else {
-              styleContainerNode.append(styleElm);
-            }
-          }
-          if (cmpMeta.$flags$ & 1 /* shadowDomEncapsulation */) {
-            styleContainerNode.insertBefore(styleElm, null);
-          }
-        }
-        if (cmpMeta.$flags$ & 4 /* hasSlotRelocation */) {
-          styleElm.innerHTML += SLOT_FB_CSS;
-        }
-        if (appliedStyles) {
-          appliedStyles.add(scopeId2);
-        }
-      }
-    } else if (!styleContainerNode.adoptedStyleSheets.includes(style)) {
-      styleContainerNode.adoptedStyleSheets = [...styleContainerNode.adoptedStyleSheets, style];
-    }
-  }
-  return scopeId2;
-};
-var attachStyles = (hostRef) => {
-  const cmpMeta = hostRef.$cmpMeta$;
-  const elm = hostRef.$hostElement$;
-  const flags = cmpMeta.$flags$;
-  const endAttachStyles = createTime("attachStyles", cmpMeta.$tagName$);
-  const scopeId2 = addStyle(
-    elm.shadowRoot ? elm.shadowRoot : elm.getRootNode(),
-    cmpMeta);
-  if (flags & 10 /* needsScopedEncapsulation */) {
-    elm["s-sc"] = scopeId2;
-    elm.classList.add(scopeId2 + "-h");
-  }
-  endAttachStyles();
-};
-var getScopeId = (cmp, mode) => "sc-" + (cmp.$tagName$);
-var convertScopedToShadow = (css) => css.replace(/\/\*!@([^\/]+)\*\/[^\{]+\{/g, "$1{");
-var hydrateScopedToShadow = () => {
-  if (!win.document) {
-    return;
-  }
-  const styles2 = win.document.querySelectorAll(`[${HYDRATED_STYLE_ID}]`);
-  let i2 = 0;
-  for (; i2 < styles2.length; i2++) {
-    registerStyle(styles2[i2].getAttribute(HYDRATED_STYLE_ID), convertScopedToShadow(styles2[i2].innerHTML), true);
-  }
-};
 var setAccessor = (elm, memberName, oldValue, newValue, isSvg, flags, initialRender) => {
   if (oldValue === newValue) {
     return;
   }
-  let isProp = isMemberInElement(elm, memberName);
   memberName.toLowerCase();
-  if (memberName === "key") ; else {
-    const isComplex = isComplexType(newValue);
-    if ((isProp || isComplex && newValue !== null) && true) {
-      try {
-        if (!elm.tagName.includes("-")) {
-          const n = newValue == null ? "" : newValue;
-          if (memberName === "list") {
-            isProp = false;
-          } else if (oldValue == null || elm[memberName] != n) {
-            if (typeof elm.__lookupSetter__(memberName) === "function") {
-              elm[memberName] = n;
-            } else {
-              elm.setAttribute(memberName, n);
-            }
-          }
-        } else if (elm[memberName] !== newValue) {
-          elm[memberName] = newValue;
-        }
-      } catch (e) {
-      }
-    }
-    if (newValue == null || newValue === false) {
-      if (newValue !== false || elm.getAttribute(memberName) === "") {
-        {
-          elm.removeAttribute(memberName);
-        }
-      }
-    } else if ((!isProp || flags & 4 /* isHost */ || isSvg) && !isComplex && elm.nodeType === 1 /* ElementNode */) {
-      newValue = newValue === true ? "" : newValue;
-      {
-        elm.setAttribute(memberName, newValue);
-      }
-    }
-  }
 };
 
 // src/runtime/vdom/update-element.ts
@@ -1204,9 +1177,7 @@ var updateElement = (oldVnode, newVnode, isSvgMode2, isInitialRender) => {
           elm,
           memberName,
           oldVnodeAttrs[memberName],
-          void 0,
-          isSvgMode2,
-          newVnode.$flags$);
+          void 0);
       }
     }
   }
@@ -1215,9 +1186,7 @@ var updateElement = (oldVnode, newVnode, isSvgMode2, isInitialRender) => {
       elm,
       memberName,
       oldVnodeAttrs[memberName],
-      newVnodeAttrs[memberName],
-      isSvgMode2,
-      newVnode.$flags$);
+      newVnodeAttrs[memberName]);
   }
 };
 function sortedAttrNames(attrNames) {
@@ -1230,8 +1199,6 @@ function sortedAttrNames(attrNames) {
   );
 }
 var hostTagName;
-var useNativeShadowDom = false;
-var isSvgMode = false;
 var createElm = (oldParentVNode, newParentVNode, childIndex) => {
   const newVNode2 = newParentVNode.$children$[childIndex];
   let i2 = 0;
@@ -1249,7 +1216,7 @@ var createElm = (oldParentVNode, newParentVNode, childIndex) => {
       newVNode2.$tag$
     );
     {
-      updateElement(null, newVNode2, isSvgMode);
+      updateElement(null, newVNode2);
     }
     if (newVNode2.$children$) {
       for (i2 = 0; i2 < newVNode2.$children$.length; ++i2) {
@@ -1262,25 +1229,6 @@ var createElm = (oldParentVNode, newParentVNode, childIndex) => {
   }
   elm["s-hn"] = hostTagName;
   return elm;
-};
-var relocateToHostRoot = (parentElm) => {
-  plt.$flags$ |= 1 /* isTmpDisconnected */;
-  const host = parentElm.closest(hostTagName.toLowerCase());
-  if (host != null) {
-    const contentRefNode = Array.from(host.__childNodes || host.childNodes).find(
-      (ref) => ref["s-cr"]
-    );
-    const childNodeArray = Array.from(
-      parentElm.__childNodes || parentElm.childNodes
-    );
-    for (const childNode of contentRefNode ? childNodeArray.reverse() : childNodeArray) {
-      if (childNode["s-sh"] != null) {
-        insertBefore(host, childNode, contentRefNode != null ? contentRefNode : null);
-        childNode["s-sh"] = void 0;
-      }
-    }
-  }
-  plt.$flags$ &= -2 /* isTmpDisconnected */;
 };
 var addVnodes = (parentElm, before, parentVNode, vnodes, startIdx, endIdx) => {
   let containerElm = parentElm;
@@ -1409,17 +1357,10 @@ var patch = (oldVNode, newVNode2, isInitialRender = false) => {
   const elm = newVNode2.$elm$ = oldVNode.$elm$;
   const oldChildren = oldVNode.$children$;
   const newChildren = newVNode2.$children$;
-  const tag = newVNode2.$tag$;
   const text = newVNode2.$text$;
   if (text === null) {
     {
-      if (tag === "slot" && !useNativeShadowDom) {
-        if (oldVNode.$name$ !== newVNode2.$name$) {
-          newVNode2.$elm$["s-sn"] = newVNode2.$name$ || "";
-          relocateToHostRoot(newVNode2.$elm$.parentElement);
-        }
-      }
-      updateElement(oldVNode, newVNode2, isSvgMode);
+      updateElement(oldVNode, newVNode2);
     }
     if (oldChildren !== null && newChildren !== null) {
       updateChildren(elm, oldChildren, newVNode2, newChildren, isInitialRender);
@@ -1473,7 +1414,6 @@ var renderVdom = (hostRef, renderFnResults, isInitialLoad = false) => {
   rootVnode.$flags$ |= 4 /* isHost */;
   hostRef.$vnode$ = rootVnode;
   rootVnode.$elm$ = oldVNode.$elm$ = hostElm.shadowRoot || hostElm ;
-  useNativeShadowDom = !!(cmpMeta.$flags$ & 1 /* shadowDomEncapsulation */) && !(cmpMeta.$flags$ & 128 /* shadowNeedsScopedCss */);
   patch(oldVNode, rootVnode, isInitialLoad);
   if (cmpMeta.$flags$ & 2 /* scopedCssEncapsulation */) {
     const children = rootVnode.$elm$.__childNodes || rootVnode.$elm$.childNodes;
@@ -1624,7 +1564,13 @@ var postUpdateComponent = (hostRef) => {
   }
 };
 var appDidLoad = (who) => {
+  var _a;
   nextTick(() => emitEvent(win, "appload", { detail: { namespace: NAMESPACE } }));
+  {
+    if ((_a = plt.$orgLocNodes$) == null ? void 0 : _a.size) {
+      plt.$orgLocNodes$.clear();
+    }
+  }
 };
 var safeCall = (instance, method, arg, elm) => {
   if (instance && instance[method]) {
@@ -1641,13 +1587,158 @@ var addHydratedFlag = (elm) => {
   return elm.classList.add((_a = BUILD.hydratedSelectorName) != null ? _a : "hydrated") ;
 };
 
+// src/runtime/set-value.ts
+var getValue = (ref, propName) => getHostRef(ref).$instanceValues$.get(propName);
+var setValue = (ref, propName, newVal, cmpMeta) => {
+  const hostRef = getHostRef(ref);
+  if (!hostRef) {
+    throw new Error(
+      `Couldn't find host element for "${cmpMeta.$tagName$}" as it is unknown to this Stencil runtime. This usually happens when integrating a 3rd party Stencil component with another Stencil component or application. Please reach out to the maintainers of the 3rd party Stencil component or report this on the Stencil Discord server (https://chat.stenciljs.com) or comment on this similar [GitHub issue](https://github.com/stenciljs/core/issues/5457).`
+    );
+  }
+  const oldVal = hostRef.$instanceValues$.get(propName);
+  const flags = hostRef.$flags$;
+  const instance = hostRef.$lazyInstance$ ;
+  newVal = parsePropertyValue(
+    newVal);
+  const areBothNaN = Number.isNaN(oldVal) && Number.isNaN(newVal);
+  const didValueChange = newVal !== oldVal && !areBothNaN;
+  if ((!(flags & 8 /* isConstructingInstance */) || oldVal === void 0) && didValueChange) {
+    hostRef.$instanceValues$.set(propName, newVal);
+    if (instance) {
+      if ((flags & (2 /* hasRendered */ | 16 /* isQueuedForUpdate */)) === 2 /* hasRendered */) {
+        if (instance.componentShouldUpdate) {
+          if (instance.componentShouldUpdate(newVal, oldVal, propName) === false) {
+            return;
+          }
+        }
+        scheduleUpdate(hostRef, false);
+      }
+    }
+  }
+};
+
 // src/runtime/proxy-component.ts
 var proxyComponent = (Cstr, cmpMeta, flags) => {
-  var _a;
+  var _a, _b;
+  const prototype = Cstr.prototype;
   if (cmpMeta.$members$ || BUILD.watchCallback) {
     const members = Object.entries((_a = cmpMeta.$members$) != null ? _a : {});
     members.map(([memberName, [memberFlags]]) => {
+      if ((memberFlags & 31 /* Prop */ || (flags & 2 /* proxyState */) && memberFlags & 32 /* State */)) {
+        const { get: origGetter, set: origSetter } = Object.getOwnPropertyDescriptor(prototype, memberName) || {};
+        if (origGetter) cmpMeta.$members$[memberName][0] |= 2048 /* Getter */;
+        if (origSetter) cmpMeta.$members$[memberName][0] |= 4096 /* Setter */;
+        if (flags & 1 /* isElementConstructor */ || !origGetter) {
+          Object.defineProperty(prototype, memberName, {
+            get() {
+              {
+                if ((cmpMeta.$members$[memberName][0] & 2048 /* Getter */) === 0) {
+                  return getValue(this, memberName);
+                }
+                const ref = getHostRef(this);
+                const instance = ref ? ref.$lazyInstance$ : prototype;
+                if (!instance) return;
+                return instance[memberName];
+              }
+            },
+            configurable: true,
+            enumerable: true
+          });
+        }
+        Object.defineProperty(prototype, memberName, {
+          set(newValue) {
+            const ref = getHostRef(this);
+            if (origSetter) {
+              const currentValue = memberFlags & 32 /* State */ ? this[memberName] : ref.$hostElement$[memberName];
+              if (typeof currentValue === "undefined" && ref.$instanceValues$.get(memberName)) {
+                newValue = ref.$instanceValues$.get(memberName);
+              } else if (!ref.$instanceValues$.get(memberName) && currentValue) {
+                ref.$instanceValues$.set(memberName, currentValue);
+              }
+              origSetter.apply(this, [
+                parsePropertyValue(
+                  newValue)
+              ]);
+              newValue = memberFlags & 32 /* State */ ? this[memberName] : ref.$hostElement$[memberName];
+              setValue(this, memberName, newValue, cmpMeta);
+              return;
+            }
+            {
+              if ((flags & 1 /* isElementConstructor */) === 0 || (cmpMeta.$members$[memberName][0] & 4096 /* Setter */) === 0) {
+                setValue(this, memberName, newValue, cmpMeta);
+                if (flags & 1 /* isElementConstructor */ && !ref.$lazyInstance$) {
+                  ref.$onReadyPromise$.then(() => {
+                    if (cmpMeta.$members$[memberName][0] & 4096 /* Setter */ && ref.$lazyInstance$[memberName] !== ref.$instanceValues$.get(memberName)) {
+                      ref.$lazyInstance$[memberName] = newValue;
+                    }
+                  });
+                }
+                return;
+              }
+              const setterSetVal = () => {
+                const currentValue = ref.$lazyInstance$[memberName];
+                if (!ref.$instanceValues$.get(memberName) && currentValue) {
+                  ref.$instanceValues$.set(memberName, currentValue);
+                }
+                ref.$lazyInstance$[memberName] = parsePropertyValue(
+                  newValue);
+                setValue(this, memberName, ref.$lazyInstance$[memberName], cmpMeta);
+              };
+              if (ref.$lazyInstance$) {
+                setterSetVal();
+              } else {
+                ref.$onReadyPromise$.then(() => setterSetVal());
+              }
+            }
+          }
+        });
+      }
     });
+    if ((flags & 1 /* isElementConstructor */)) {
+      const attrNameToPropName = /* @__PURE__ */ new Map();
+      prototype.attributeChangedCallback = function(attrName, oldValue, newValue) {
+        plt.jmp(() => {
+          var _a2;
+          const propName = attrNameToPropName.get(attrName);
+          if (this.hasOwnProperty(propName) && BUILD.lazyLoad) {
+            newValue = this[propName];
+            delete this[propName];
+          } else if (prototype.hasOwnProperty(propName) && typeof this[propName] === "number" && // cast type to number to avoid TS compiler issues
+          this[propName] == newValue) {
+            return;
+          } else if (propName == null) {
+            const hostRef = getHostRef(this);
+            const flags2 = hostRef == null ? void 0 : hostRef.$flags$;
+            if (flags2 && !(flags2 & 8 /* isConstructingInstance */) && flags2 & 128 /* isWatchReady */ && newValue !== oldValue) {
+              const instance = hostRef.$lazyInstance$ ;
+              const entry = (_a2 = cmpMeta.$watchers$) == null ? void 0 : _a2[attrName];
+              entry == null ? void 0 : entry.forEach((callbackName) => {
+                if (instance[callbackName] != null) {
+                  instance[callbackName].call(instance, newValue, oldValue, attrName);
+                }
+              });
+            }
+            return;
+          }
+          const propDesc = Object.getOwnPropertyDescriptor(prototype, propName);
+          newValue = newValue === null && typeof this[propName] === "boolean" ? false : newValue;
+          if (newValue !== this[propName] && (!propDesc.get || !!propDesc.set)) {
+            this[propName] = newValue;
+          }
+        });
+      };
+      Cstr.observedAttributes = Array.from(
+        /* @__PURE__ */ new Set([
+          ...Object.keys((_b = cmpMeta.$watchers$) != null ? _b : {}),
+          ...members.filter(([_, m]) => m[0] & 15 /* HasAttribute */).map(([propName, m]) => {
+            const attrName = m[1] || propName;
+            attrNameToPropName.set(attrName, propName);
+            return attrName;
+          })
+        ])
+      );
+    }
   }
   return Cstr;
 };
@@ -1671,7 +1762,7 @@ var initializeComponent = async (elm, hostRef, cmpMeta, hmrVersionId) => {
         throw new Error(`Constructor for "${cmpMeta.$tagName$}#${hostRef.$modeName$}" was not found`);
       }
       if (!Cstr.isProxied) {
-        proxyComponent(Cstr, cmpMeta);
+        proxyComponent(Cstr, cmpMeta, 2 /* proxyState */);
         Cstr.isProxied = true;
       }
       const endNewInstance = createTime("createInstance", cmpMeta.$tagName$);
@@ -1747,6 +1838,15 @@ var connectedCallback = (elm) => {
             break;
           }
         }
+      }
+      if (cmpMeta.$members$) {
+        Object.entries(cmpMeta.$members$).map(([memberName, [memberFlags]]) => {
+          if (memberFlags & 31 /* Prop */ && elm.hasOwnProperty(memberName)) {
+            const value = elm[memberName];
+            delete elm[memberName];
+            elm[memberName] = value;
+          }
+        });
       }
       {
         initializeComponent(elm, hostRef, cmpMeta);
@@ -1883,7 +1983,7 @@ var bootstrapLazy = (lazyBundles, options = {}) => {
         cmpTags.push(tagName);
         customElements2.define(
           tagName,
-          proxyComponent(HostElement, cmpMeta)
+          proxyComponent(HostElement, cmpMeta, 1 /* isElementConstructor */)
         );
       }
     });

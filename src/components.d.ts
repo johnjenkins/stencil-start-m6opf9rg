@@ -6,45 +6,40 @@
  */
 import { HTMLStencilElement, JSXBase } from "@stencil/core/internal";
 export namespace Components {
-    interface CmpChild {
-    }
-    interface CmpParent {
+    interface CmpArrayCmp {
+        /**
+          * @default []
+         */
+        "anArray": any[];
     }
 }
 declare global {
-    interface HTMLCmpChildElement extends Components.CmpChild, HTMLStencilElement {
+    interface HTMLCmpArrayCmpElement extends Components.CmpArrayCmp, HTMLStencilElement {
     }
-    var HTMLCmpChildElement: {
-        prototype: HTMLCmpChildElement;
-        new (): HTMLCmpChildElement;
-    };
-    interface HTMLCmpParentElement extends Components.CmpParent, HTMLStencilElement {
-    }
-    var HTMLCmpParentElement: {
-        prototype: HTMLCmpParentElement;
-        new (): HTMLCmpParentElement;
+    var HTMLCmpArrayCmpElement: {
+        prototype: HTMLCmpArrayCmpElement;
+        new (): HTMLCmpArrayCmpElement;
     };
     interface HTMLElementTagNameMap {
-        "cmp-child": HTMLCmpChildElement;
-        "cmp-parent": HTMLCmpParentElement;
+        "cmp-array-cmp": HTMLCmpArrayCmpElement;
     }
 }
 declare namespace LocalJSX {
-    interface CmpChild {
-    }
-    interface CmpParent {
+    interface CmpArrayCmp {
+        /**
+          * @default []
+         */
+        "anArray"?: any[];
     }
     interface IntrinsicElements {
-        "cmp-child": CmpChild;
-        "cmp-parent": CmpParent;
+        "cmp-array-cmp": CmpArrayCmp;
     }
 }
 export { LocalJSX as JSX };
 declare module "@stencil/core" {
     export namespace JSX {
         interface IntrinsicElements {
-            "cmp-child": LocalJSX.CmpChild & JSXBase.HTMLAttributes<HTMLCmpChildElement>;
-            "cmp-parent": LocalJSX.CmpParent & JSXBase.HTMLAttributes<HTMLCmpParentElement>;
+            "cmp-array-cmp": LocalJSX.CmpArrayCmp & JSXBase.HTMLAttributes<HTMLCmpArrayCmpElement>;
         }
     }
 }

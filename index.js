@@ -26,15 +26,15 @@ app.engine('.html', function (filePath, opts, callback) {
 
     return hydrate
       .renderToString(htmlString, {
-        serializeShadowRoot: {
-          default: 'declarative-shadow-dom',
-          scoped: ['cmp-child']
-        },
+        serializeShadowRoot:'declarative-shadow-dom',
         language: 'en-US',
         direction: 'ltr',
         runtimeLogging: true,
         fullDocument: true,
         prettyHtml: true,
+        beforeHydrate: (doc) => {
+          doc.querySelector('cmp-array-cmp').anArray = ['one', 'two', 'three'];
+        }
       })
       .then((resp) => {
         // console.log('incoming html', htmlString);
@@ -48,7 +48,7 @@ app.set('views', path.join(__dirname, 'views'));
 app.use(express.static(path.join(__dirname, 'public')));
 app.set('view engine', 'html');
 
-const buglist = ['missing-ssr-styles'];
+const buglist = ['cmp-arr-prop'];
 
 buglist.forEach((bug) => {
   app.get('/' + bug, (req, res) => {
