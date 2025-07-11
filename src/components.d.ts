@@ -12,6 +12,12 @@ export namespace Components {
          */
         "anArray": any[];
     }
+    interface ScopedParentNamedSlot {
+        /**
+          * @default []
+         */
+        "anArray": any[];
+    }
     interface ShadowChild1 {
         /**
           * @default []
@@ -32,6 +38,12 @@ declare global {
         prototype: HTMLScopedParentElement;
         new (): HTMLScopedParentElement;
     };
+    interface HTMLScopedParentNamedSlotElement extends Components.ScopedParentNamedSlot, HTMLStencilElement {
+    }
+    var HTMLScopedParentNamedSlotElement: {
+        prototype: HTMLScopedParentNamedSlotElement;
+        new (): HTMLScopedParentNamedSlotElement;
+    };
     interface HTMLShadowChild1Element extends Components.ShadowChild1, HTMLStencilElement {
     }
     var HTMLShadowChild1Element: {
@@ -46,12 +58,19 @@ declare global {
     };
     interface HTMLElementTagNameMap {
         "scoped-parent": HTMLScopedParentElement;
+        "scoped-parent-named-slot": HTMLScopedParentNamedSlotElement;
         "shadow-child-1": HTMLShadowChild1Element;
         "shadow-child-2": HTMLShadowChild2Element;
     }
 }
 declare namespace LocalJSX {
     interface ScopedParent {
+        /**
+          * @default []
+         */
+        "anArray"?: any[];
+    }
+    interface ScopedParentNamedSlot {
         /**
           * @default []
          */
@@ -71,6 +90,7 @@ declare namespace LocalJSX {
     }
     interface IntrinsicElements {
         "scoped-parent": ScopedParent;
+        "scoped-parent-named-slot": ScopedParentNamedSlot;
         "shadow-child-1": ShadowChild1;
         "shadow-child-2": ShadowChild2;
     }
@@ -80,6 +100,7 @@ declare module "@stencil/core" {
     export namespace JSX {
         interface IntrinsicElements {
             "scoped-parent": LocalJSX.ScopedParent & JSXBase.HTMLAttributes<HTMLScopedParentElement>;
+            "scoped-parent-named-slot": LocalJSX.ScopedParentNamedSlot & JSXBase.HTMLAttributes<HTMLScopedParentNamedSlotElement>;
             "shadow-child-1": LocalJSX.ShadowChild1 & JSXBase.HTMLAttributes<HTMLShadowChild1Element>;
             "shadow-child-2": LocalJSX.ShadowChild2 & JSXBase.HTMLAttributes<HTMLShadowChild2Element>;
         }

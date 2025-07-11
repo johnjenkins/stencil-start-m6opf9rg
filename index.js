@@ -45,7 +45,7 @@ app.set('views', path.join(__dirname, 'views'));
 app.use(express.static(path.join(__dirname, 'public')));
 app.set('view engine', 'html');
 
-const buglist = ['slot-forwarding'];
+const buglist = ['slot-forwarding', 'slot-forwarding-named-slot'];
 
 buglist.forEach((bug) => {
   app.get('/' + bug, (req, res) => {

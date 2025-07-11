@@ -1,4 +1,4 @@
-import { r as registerInstance, h, H as Host } from './index-CWIGUySP.js';
+import { r as registerInstance, h, H as Host } from './index-VDwYsFSf.js';
 
 const MyApp = class {
     constructor(hostRef) {
@@ -6,7 +6,7 @@ const MyApp = class {
         this.anArray = [];
     }
     render() {
-        return (h(Host, { key: '2821c6410d32829345e677cc99aa61bd130aac1d' }, h("div", { key: 'ea1e3f08c8a58b348fae71e24f620b1d2c06e8fa' }, "Scoped parent.", h("shadow-child-1", { key: 'ed6232a23e64fb01b206908d221ccd9f50b36a88' }, h("slot", { key: '64e63dc4f1bc56cb2a5e5716d4833c767b78293c' })))));
+        return (h(Host, { key: '3f76c5202600e02de1ac9c9da99ddc1727d885b2' }, h("div", { key: '52bef3e99b46d7179bd881406439a7ead7b7bf5e' }, "Scoped parent.", h("shadow-child-1", { key: 'db977da5f5a374eb9201842ab5a4d29d6be5aaad' }, h("slot", { key: '9abaa880585f54a6b930d165d0fd3771c7bdc779' })))));
     }
 };
 MyApp.style = ".sc-scoped-parent-h {\n    display: block;\n    border: 3px solid pink;\n  }";

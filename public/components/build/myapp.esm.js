@@ -1,9 +1,9 @@
-import { p as promiseResolve, a as H, b as bootstrapLazy } from './index-CWIGUySP.js';
-export { s as setNonce } from './index-CWIGUySP.js';
+import { p as promiseResolve, a as H, b as bootstrapLazy } from './index-VDwYsFSf.js';
+export { s as setNonce } from './index-VDwYsFSf.js';
 import { g as globalScripts } from './app-globals-DQuL1Twl.js';
 
 /*
- Stencil Client Patch Browser v4.35.3 | MIT Licensed | https://stenciljs.com
+ Stencil Client Patch Browser v4.35.3-dev.1752231083.56fe6e3 | MIT Licensed | https://stenciljs.com
  */
 
 var patchBrowser = () => {
@@ -38,5 +38,5 @@ var patchCloneNodeFix = (HTMLElementPrototype) => {
 
 patchBrowser().then(async (options) => {
   await globalScripts();
-  return bootstrapLazy([["shadow-child-2",[[1,"shadow-child-2",{"anArray":[16,"an-array"]}]]],["shadow-child-1",[[1,"shadow-child-1",{"anArray":[16,"an-array"]}]]],["scoped-parent",[[6,"scoped-parent",{"anArray":[16,"an-array"]}]]]], options);
+  return bootstrapLazy([["shadow-child-1_2",[[1,"shadow-child-1",{"anArray":[16,"an-array"]}],[1,"shadow-child-2",{"anArray":[16,"an-array"]}]]],["scoped-parent",[[6,"scoped-parent",{"anArray":[16,"an-array"]}]]],["scoped-parent-named-slot",[[6,"scoped-parent-named-slot",{"anArray":[16,"an-array"]}]]]], options);
 });

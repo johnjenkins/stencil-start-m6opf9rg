@@ -7,7 +7,7 @@
     "express": "node index.js"
   },
   "dependencies": {
-    "@stencil/core": "latest",
+    "@stencil/core": "../stenciljs",
     "express": "^4.21.2"
   },
   "devDependencies": {

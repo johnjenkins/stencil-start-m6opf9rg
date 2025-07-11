@@ -1,0 +1,11 @@
+<%- include('header.ejs') -%>
+
+<h1><%= title %> demo</h1>
+
+<scoped-parent-named-slot>
+  <div slot="things">1</div>
+  <div slot="things">2</div>
+  <div slot="things">3</div>
+</scoped-parent-named-slot> 
+
+<%- include('footer.ejs') -%>

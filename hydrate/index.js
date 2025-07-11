@@ -130,7 +130,7 @@ const NAMESPACE = 'myapp';
 const BUILD = /* myapp */ { hydratedSelectorName: "hydrated", slotRelocation: true, updatable: true, watchCallback: false };
 
 /*
- Stencil Hydrate Platform v4.35.3 | MIT Licensed | https://stenciljs.com
+ Stencil Hydrate Platform v4.35.3-dev.1752231083.56fe6e3 | MIT Licensed | https://stenciljs.com
  */
 var __defProp = Object.defineProperty;
 var __export = (target, all) => {
@@ -343,7 +343,11 @@ function createShadowRoot(cmpMeta) {
   var _a;
   const shadowRoot = this.attachShadow({ mode: "open" });
   if (globalStyleSheet === void 0) globalStyleSheet = (_a = createStyleSheetIfNeededAndSupported()) != null ? _a : null;
-  if (globalStyleSheet) shadowRoot.adoptedStyleSheets.push(globalStyleSheet);
+  if (globalStyleSheet) {
+    {
+      shadowRoot.adoptedStyleSheets = [...shadowRoot.adoptedStyleSheets, globalStyleSheet];
+    }
+  }
 }
 
 // src/runtime/runtime-constants.ts
@@ -732,7 +736,7 @@ var initializeClientHydrate = (hostElm, tagName, hostId, hostRef) => {
       if (childRenderNode.$tag$ === "slot") {
         node["s-cr"] = hostElm["s-cr"];
       }
-    } else if (((_b = childRenderNode.$tag$) == null ? void 0 : _b.toString().includes("-")) && !childRenderNode.$elm$.shadowRoot) {
+    } else if (((_b = childRenderNode.$tag$) == null ? void 0 : _b.toString().includes("-")) && childRenderNode.$tag$ !== "slot-fb" && !childRenderNode.$elm$.shadowRoot) {
       const cmpMeta = getHostRef(childRenderNode.$elm$);
       const scopeId3 = getScopeId(
         cmpMeta.$cmpMeta$);
@@ -786,6 +790,9 @@ var initializeClientHydrate = (hostElm, tagName, hostId, hostRef) => {
       }
       if (!hosts[slottedItem.hostId]) continue;
       const hostEle = hosts[slottedItem.hostId];
+      if (hostEle.shadowRoot && slottedItem.node.parentElement !== hostEle) {
+        hostEle.appendChild(slottedItem.node);
+      }
       if (!hostEle.shadowRoot || !shadowRoot) {
         if (!slottedItem.slot["s-cr"]) {
           slottedItem.slot["s-cr"] = hostEle["s-cr"];
@@ -796,9 +803,9 @@ var initializeClientHydrate = (hostElm, tagName, hostId, hostRef) => {
           }
         }
         addSlotRelocateNode(slottedItem.node, slottedItem.slot, false, slottedItem.node["s-oo"]);
-      }
-      if (hostEle.shadowRoot && slottedItem.node.parentElement !== hostEle) {
-        hostEle.appendChild(slottedItem.node);
+        if (slottedItem.node["getAttribute"] && slottedItem.node.getAttribute("slot")) {
+          slottedItem.node.removeAttribute("slot");
+        }
       }
     }
   }
@@ -1071,13 +1078,17 @@ function addSlot(slotName, slotId, childVNode, node, parentVNode, childRenderNod
   parentVNode.$children$[childVNode.$index$] = childVNode;
 }
 var addSlottedNodes = (slottedNodes, slotNodeId, slotName, slotNode, hostId) => {
+  var _a, _b;
   let slottedNode = slotNode.nextSibling;
   slottedNodes[slotNodeId] = slottedNodes[slotNodeId] || [];
-  while (slottedNode && ((slottedNode["getAttribute"] && slottedNode.getAttribute("slot") || slottedNode["s-sn"]) === slotName || slotName === "" && !slottedNode["s-sn"] && (slottedNode.nodeType === 8 /* CommentNode */ || slottedNode.nodeType === 3 /* TextNode */ || slottedNode.tagName === "SLOT"))) {
-    slottedNode["s-sn"] = slotName;
-    slottedNodes[slotNodeId].push({ slot: slotNode, node: slottedNode, hostId });
-    slottedNode = slottedNode.nextSibling;
-  }
+  if (!slottedNode || ((_a = slottedNode.nodeValue) == null ? void 0 : _a.startsWith(SLOT_NODE_ID + "."))) return;
+  do {
+    if (slottedNode && ((slottedNode["getAttribute"] && slottedNode.getAttribute("slot") || slottedNode["s-sn"]) === slotName || slotName === "" && !slottedNode["s-sn"] && (!slottedNode["getAttribute"] || !slottedNode.getAttribute("slot")) && (slottedNode.nodeType === 8 /* CommentNode */ || slottedNode.nodeType === 3 /* TextNode */))) {
+      slottedNode["s-sn"] = slotName;
+      slottedNodes[slotNodeId].push({ slot: slotNode, node: slottedNode, hostId });
+    }
+    slottedNode = slottedNode == null ? void 0 : slottedNode.nextSibling;
+  } while (slottedNode && !((_b = slottedNode.nodeValue) == null ? void 0 : _b.startsWith(SLOT_NODE_ID + ".")));
 };
 var findCorrespondingNode = (node, type) => {
   let sibling = node;
@@ -1518,8 +1529,42 @@ var setAccessor = (elm, memberName, oldValue, newValue, isSvg, flags, initialRen
   if (oldValue === newValue) {
     return;
   }
-  isMemberInElement(elm, memberName);
+  let isProp = isMemberInElement(elm, memberName);
   memberName.toLowerCase();
+  if (memberName === "key") ; else {
+    const isComplex = isComplexType(newValue);
+    if ((isProp || isComplex && newValue !== null) && true) {
+      try {
+        if (!elm.tagName.includes("-")) {
+          const n = newValue == null ? "" : newValue;
+          if (memberName === "list") {
+            isProp = false;
+          } else if (oldValue == null || elm[memberName] != n) {
+            if (typeof elm.__lookupSetter__(memberName) === "function") {
+              elm[memberName] = n;
+            } else {
+              elm.setAttribute(memberName, n);
+            }
+          }
+        } else if (elm[memberName] !== newValue) {
+          elm[memberName] = newValue;
+        }
+      } catch (e) {
+      }
+    }
+    if (newValue == null || newValue === false) {
+      if (newValue !== false || elm.getAttribute(memberName) === "") {
+        {
+          elm.removeAttribute(memberName);
+        }
+      }
+    } else if ((!isProp || flags & 4 /* isHost */ || isSvg) && !isComplex && elm.nodeType === 1 /* ElementNode */) {
+      newValue = newValue === true ? "" : newValue;
+      {
+        elm.setAttribute(memberName, newValue);
+      }
+    }
+  }
 };
 
 // src/runtime/vdom/update-element.ts
@@ -1534,7 +1579,9 @@ var updateElement = (oldVnode, newVnode, isSvgMode2, isInitialRender) => {
           elm,
           memberName,
           oldVnodeAttrs[memberName],
-          void 0);
+          void 0,
+          isSvgMode2,
+          newVnode.$flags$);
       }
     }
   }
@@ -1543,7 +1590,9 @@ var updateElement = (oldVnode, newVnode, isSvgMode2, isInitialRender) => {
       elm,
       memberName,
       oldVnodeAttrs[memberName],
-      newVnodeAttrs[memberName]);
+      newVnodeAttrs[memberName],
+      isSvgMode2,
+      newVnode.$flags$);
   }
 };
 function sortedAttrNames(attrNames) {
@@ -1563,6 +1612,7 @@ var hostTagName;
 var useNativeShadowDom = false;
 var checkSlotFallbackVisibility = false;
 var checkSlotRelocate = false;
+var isSvgMode = false;
 var createElm = (oldParentVNode, newParentVNode, childIndex) => {
   var _a;
   const newVNode2 = newParentVNode.$children$[childIndex];
@@ -1590,7 +1640,7 @@ var createElm = (oldParentVNode, newParentVNode, childIndex) => {
   } else if (newVNode2.$flags$ & 1 /* isSlotReference */) {
     elm = newVNode2.$elm$ = slotReferenceDebugNode(newVNode2) ;
     {
-      updateElement(null, newVNode2);
+      updateElement(null, newVNode2, isSvgMode);
     }
   } else {
     if (!win.document) {
@@ -1602,7 +1652,7 @@ var createElm = (oldParentVNode, newParentVNode, childIndex) => {
       !useNativeShadowDom && BUILD.slotRelocation && newVNode2.$flags$ & 2 /* isSlotFallback */ ? "slot-fb" : newVNode2.$tag$
     );
     {
-      updateElement(null, newVNode2);
+      updateElement(null, newVNode2, isSvgMode);
     }
     if (isDef(scopeId) && elm["s-si"] !== scopeId) {
       elm.classList.add(elm["s-si"] = scopeId);
@@ -1808,7 +1858,7 @@ var patch = (oldVNode, newVNode2, isInitialRender = false) => {
   let defaultHolder;
   if (text === null) {
     {
-      updateElement(oldVNode, newVNode2);
+      updateElement(oldVNode, newVNode2, isSvgMode);
     }
     if (oldChildren !== null && newChildren !== null) {
       updateChildren(elm, oldChildren, newVNode2, newChildren, isInitialRender);
@@ -3029,18 +3079,39 @@ var setScopedSSR = (opts) => {
 var needsScopedSSR = () => scopedSSR;
 var scopedSSR = false;
 
+let MyApp$3 = class MyApp {
+    constructor(hostRef) {
+        registerInstance(this, hostRef);
+        this.anArray = [];
+    }
+    render() {
+        return (hAsync(Host, { key: '3f76c5202600e02de1ac9c9da99ddc1727d885b2' }, hAsync("div", { key: '52bef3e99b46d7179bd881406439a7ead7b7bf5e' }, "Scoped parent.", hAsync("shadow-child-1", { key: 'db977da5f5a374eb9201842ab5a4d29d6be5aaad' }, hAsync("slot", { key: '9abaa880585f54a6b930d165d0fd3771c7bdc779' })))));
+    }
+    static get style() { return ".sc-scoped-parent-h {\n    display: block;\n    border: 3px solid pink;\n  }"; }
+    static get cmpMeta() { return {
+        "$flags$": 6,
+        "$tagName$": "scoped-parent",
+        "$members$": {
+            "anArray": [16, "an-array"]
+        },
+        "$listeners$": undefined,
+        "$lazyBundleId$": "-",
+        "$attrsToReflect$": []
+    }; }
+};
+
 let MyApp$2 = class MyApp {
     constructor(hostRef) {
         registerInstance(this, hostRef);
         this.anArray = [];
     }
     render() {
-        return (hAsync(Host, { key: '2821c6410d32829345e677cc99aa61bd130aac1d' }, hAsync("div", { key: 'ea1e3f08c8a58b348fae71e24f620b1d2c06e8fa' }, "Scoped parent.", hAsync("shadow-child-1", { key: 'ed6232a23e64fb01b206908d221ccd9f50b36a88' }, hAsync("slot", { key: '64e63dc4f1bc56cb2a5e5716d4833c767b78293c' })))));
+        return (hAsync(Host, { key: 'b154b596b7c172de223da89c4f6e113607111ff4' }, hAsync("div", { key: 'af5cd3f4ec9856ff4f081f3e600a4b05935493c3' }, "Scoped parent with named slot.", hAsync("shadow-child-1", { key: '30035cc02fbceb85ff419c9c09f96c09cac2a2cc' }, hAsync("slot", { key: '78891b2e3bc6426efa9fa495b89f45ad413bf86a', name: "things" })))));
     }
-    static get style() { return ".sc-scoped-parent-h {\n    display: block;\n    border: 3px solid pink;\n  }"; }
+    static get style() { return ".sc-scoped-parent-named-slot-h {\n    display: block;\n    border: 3px solid pink;\n  }"; }
     static get cmpMeta() { return {
         "$flags$": 6,
-        "$tagName$": "scoped-parent",
+        "$tagName$": "scoped-parent-named-slot",
         "$members$": {
             "anArray": [16, "an-array"]
         },
@@ -3056,7 +3127,7 @@ let MyApp$1 = class MyApp {
         this.anArray = [];
     }
     render() {
-        return (hAsync(Host, { key: '3f76c5202600e02de1ac9c9da99ddc1727d885b2' }, "Shadow Child 1.", hAsync("div", { key: '96959d6645179a5fa53ef4fa4199014bee602763' }, hAsync("shadow-child-2", { key: 'db977da5f5a374eb9201842ab5a4d29d6be5aaad' }, hAsync("slot", { key: '9abaa880585f54a6b930d165d0fd3771c7bdc779' })))));
+        return (hAsync(Host, { key: '7d467ffd08f9ed4f47cf5857b6d78d07dbdc30d9' }, "Shadow Child 1.", hAsync("div", { key: '2f8f9a8784b765f76b2431b077ef3e6baa7f2b63' }, hAsync("shadow-child-2", { key: 'd47e1f3a0273f3ce27bb12c6ad02431385555b6c' }, hAsync("slot", { key: '0ab575470361ad64dfce8f4d6554374297f3e8d1' })))));
     }
     static get style() { return ":host {\n    display: block;\n    border: 3px solid red;\n  }"; }
     static get cmpMeta() { return {
@@ -3077,7 +3148,7 @@ class MyApp {
         this.anArray = [];
     }
     render() {
-        return (hAsync(Host, { key: '28adfcc5a80b4a5f92a0daa04d74dc8e27d045dd' }, "Shadow Child 2.", hAsync("slot", { key: '87d22878c5de6f57cc00ad669d167293f7ff5925' })));
+        return (hAsync(Host, { key: 'b0bb7734a9f1d42568b287764954796a81acf307' }, "Shadow Child 2.", hAsync("slot", { key: 'c902666963335d9da64738fbdacfd9f6b6fae6d0' })));
     }
     static get style() { return ":host {\n    display: block;\n    border: 3px solid green;\n  }"; }
     static get cmpMeta() { return {
@@ -3093,6 +3164,7 @@ class MyApp {
 }
 
 registerComponents([
+  MyApp$3,
   MyApp$2,
   MyApp$1,
   MyApp,
@@ -3195,7 +3267,7 @@ var NAMESPACE = (
 );
 
 /*
- Stencil Hydrate Runner v4.35.3 | MIT Licensed | https://stenciljs.com
+ Stencil Hydrate Runner v4.35.3-dev.1752231083.56fe6e3 | MIT Licensed | https://stenciljs.com
  */
 var __defProp = Object.defineProperty;
 var __export = (target, all) => {
@@ -13576,6 +13648,11 @@ function* streamToHtml(node, opts, output) {
         const mode = ` shadowrootmode="open"`;
         yield mode;
         output.currentLineWidth += mode.length;
+        if (node.delegatesFocus) {
+          const delegatesFocusAttr = " shadowrootdelegatesfocus";
+          yield delegatesFocusAttr;
+          output.currentLineWidth += delegatesFocusAttr.length;
+        }
       }
       const attrsLength = node.attributes.length;
       const attributes = opts.prettyHtml && attrsLength > 1 ? cloneAttributes(node.attributes, true) : node.attributes;
@@ -14141,7 +14218,9 @@ var MockElement = class extends MockNode2 {
     addEventListener(this, type, handler);
   }
   attachShadow(_opts) {
+    var _a2;
     const shadowRoot = this.ownerDocument.createDocumentFragment();
+    shadowRoot.delegatesFocus = (_a2 = _opts.delegatesFocus) != null ? _a2 : false;
     this.shadowRoot = shadowRoot;
     return shadowRoot;
   }
