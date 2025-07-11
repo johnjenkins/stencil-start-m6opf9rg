@@ -130,7 +130,7 @@ const NAMESPACE = 'myapp';
 const BUILD = /* myapp */ { hydratedSelectorName: "hydrated", slotRelocation: true, updatable: true, watchCallback: false };
 
 /*
- Stencil Hydrate Platform v4.35.3-dev.1752231083.56fe6e3 | MIT Licensed | https://stenciljs.com
+ Stencil Hydrate Platform v4.35.3 | MIT Licensed | https://stenciljs.com
  */
 var __defProp = Object.defineProperty;
 var __export = (target, all) => {
@@ -343,11 +343,7 @@ function createShadowRoot(cmpMeta) {
   var _a;
   const shadowRoot = this.attachShadow({ mode: "open" });
   if (globalStyleSheet === void 0) globalStyleSheet = (_a = createStyleSheetIfNeededAndSupported()) != null ? _a : null;
-  if (globalStyleSheet) {
-    {
-      shadowRoot.adoptedStyleSheets = [...shadowRoot.adoptedStyleSheets, globalStyleSheet];
-    }
-  }
+  if (globalStyleSheet) shadowRoot.adoptedStyleSheets.push(globalStyleSheet);
 }
 
 // src/runtime/runtime-constants.ts
@@ -736,7 +732,7 @@ var initializeClientHydrate = (hostElm, tagName, hostId, hostRef) => {
       if (childRenderNode.$tag$ === "slot") {
         node["s-cr"] = hostElm["s-cr"];
       }
-    } else if (((_b = childRenderNode.$tag$) == null ? void 0 : _b.toString().includes("-")) && childRenderNode.$tag$ !== "slot-fb" && !childRenderNode.$elm$.shadowRoot) {
+    } else if (((_b = childRenderNode.$tag$) == null ? void 0 : _b.toString().includes("-")) && !childRenderNode.$elm$.shadowRoot) {
       const cmpMeta = getHostRef(childRenderNode.$elm$);
       const scopeId3 = getScopeId(
         cmpMeta.$cmpMeta$);
@@ -790,9 +786,6 @@ var initializeClientHydrate = (hostElm, tagName, hostId, hostRef) => {
       }
       if (!hosts[slottedItem.hostId]) continue;
       const hostEle = hosts[slottedItem.hostId];
-      if (hostEle.shadowRoot && slottedItem.node.parentElement !== hostEle) {
-        hostEle.appendChild(slottedItem.node);
-      }
       if (!hostEle.shadowRoot || !shadowRoot) {
         if (!slottedItem.slot["s-cr"]) {
           slottedItem.slot["s-cr"] = hostEle["s-cr"];
@@ -803,9 +796,9 @@ var initializeClientHydrate = (hostElm, tagName, hostId, hostRef) => {
           }
         }
         addSlotRelocateNode(slottedItem.node, slottedItem.slot, false, slottedItem.node["s-oo"]);
-        if (slottedItem.node["getAttribute"] && slottedItem.node.getAttribute("slot")) {
-          slottedItem.node.removeAttribute("slot");
-        }
+      }
+      if (hostEle.shadowRoot && slottedItem.node.parentElement !== hostEle) {
+        hostEle.appendChild(slottedItem.node);
       }
     }
   }
@@ -1078,17 +1071,13 @@ function addSlot(slotName, slotId, childVNode, node, parentVNode, childRenderNod
   parentVNode.$children$[childVNode.$index$] = childVNode;
 }
 var addSlottedNodes = (slottedNodes, slotNodeId, slotName, slotNode, hostId) => {
-  var _a, _b;
   let slottedNode = slotNode.nextSibling;
   slottedNodes[slotNodeId] = slottedNodes[slotNodeId] || [];
-  if (!slottedNode || ((_a = slottedNode.nodeValue) == null ? void 0 : _a.startsWith(SLOT_NODE_ID + "."))) return;
-  do {
-    if (slottedNode && ((slottedNode["getAttribute"] && slottedNode.getAttribute("slot") || slottedNode["s-sn"]) === slotName || slotName === "" && !slottedNode["s-sn"] && (!slottedNode["getAttribute"] || !slottedNode.getAttribute("slot")) && (slottedNode.nodeType === 8 /* CommentNode */ || slottedNode.nodeType === 3 /* TextNode */))) {
-      slottedNode["s-sn"] = slotName;
-      slottedNodes[slotNodeId].push({ slot: slotNode, node: slottedNode, hostId });
-    }
-    slottedNode = slottedNode == null ? void 0 : slottedNode.nextSibling;
-  } while (slottedNode && !((_b = slottedNode.nodeValue) == null ? void 0 : _b.startsWith(SLOT_NODE_ID + ".")));
+  while (slottedNode && ((slottedNode["getAttribute"] && slottedNode.getAttribute("slot") || slottedNode["s-sn"]) === slotName || slotName === "" && !slottedNode["s-sn"] && (slottedNode.nodeType === 8 /* CommentNode */ || slottedNode.nodeType === 3 /* TextNode */ || slottedNode.tagName === "SLOT"))) {
+    slottedNode["s-sn"] = slotName;
+    slottedNodes[slotNodeId].push({ slot: slotNode, node: slottedNode, hostId });
+    slottedNode = slottedNode.nextSibling;
+  }
 };
 var findCorrespondingNode = (node, type) => {
   let sibling = node;
@@ -3267,7 +3256,7 @@ var NAMESPACE = (
 );
 
 /*
- Stencil Hydrate Runner v4.35.3-dev.1752231083.56fe6e3 | MIT Licensed | https://stenciljs.com
+ Stencil Hydrate Runner v4.35.3 | MIT Licensed | https://stenciljs.com
  */
 var __defProp = Object.defineProperty;
 var __export = (target, all) => {
@@ -13648,11 +13637,6 @@ function* streamToHtml(node, opts, output) {
         const mode = ` shadowrootmode="open"`;
         yield mode;
         output.currentLineWidth += mode.length;
-        if (node.delegatesFocus) {
-          const delegatesFocusAttr = " shadowrootdelegatesfocus";
-          yield delegatesFocusAttr;
-          output.currentLineWidth += delegatesFocusAttr.length;
-        }
       }
       const attrsLength = node.attributes.length;
       const attributes = opts.prettyHtml && attrsLength > 1 ? cloneAttributes(node.attributes, true) : node.attributes;
@@ -14218,9 +14202,7 @@ var MockElement = class extends MockNode2 {
     addEventListener(this, type, handler);
   }
   attachShadow(_opts) {
-    var _a2;
     const shadowRoot = this.ownerDocument.createDocumentFragment();
-    shadowRoot.delegatesFocus = (_a2 = _opts.delegatesFocus) != null ? _a2 : false;
     this.shadowRoot = shadowRoot;
     return shadowRoot;
   }
