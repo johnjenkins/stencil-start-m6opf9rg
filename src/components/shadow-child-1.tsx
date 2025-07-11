@@ -1,11 +1,11 @@
 import { Component, Host, Prop, h } from '@stencil/core';
 
 @Component({
-  tag: 'cmp-array-cmp',
+  tag: 'shadow-child-1',
   shadow: true,
   styles: `:host {
     display: block;
-    border: 3px solid blue;
+    border: 3px solid red;
   }`,
 })
 export class MyApp {
@@ -15,13 +15,11 @@ export class MyApp {
   render() {
     return (
       <Host>
+         Shadow Child 1.
         <div>
-          An array component: 
-         <ol>
-          {this.anArray.map((item) => (
-            <li>{item}</li>
-          ))}
-         </ol>
+          <shadow-child-2>
+            <slot />
+          </shadow-child-2>
         </div>
       </Host>
     );

@@ -1,8 +1,9 @@
-import { p as promiseResolve, a as H, g as globalScripts, b as bootstrapLazy } from './index-Boaou4Jc.js';
-export { s as setNonce } from './index-Boaou4Jc.js';
+import { p as promiseResolve, a as H, b as bootstrapLazy } from './index-CWIGUySP.js';
+export { s as setNonce } from './index-CWIGUySP.js';
+import { g as globalScripts } from './app-globals-DQuL1Twl.js';
 
 /*
- Stencil Client Patch Browser v4.35.1-dev.1750682262.1ce9541 | MIT Licensed | https://stenciljs.com
+ Stencil Client Patch Browser v4.35.3 | MIT Licensed | https://stenciljs.com
  */
 
 var patchBrowser = () => {
@@ -37,5 +38,5 @@ var patchCloneNodeFix = (HTMLElementPrototype) => {
 
 patchBrowser().then(async (options) => {
   await globalScripts();
-  return bootstrapLazy([["cmp-array-cmp",[[1,"cmp-array-cmp",{"anArray":[16,"an-array"]}]]]], options);
+  return bootstrapLazy([["shadow-child-2",[[1,"shadow-child-2",{"anArray":[16,"an-array"]}]]],["shadow-child-1",[[1,"shadow-child-1",{"anArray":[16,"an-array"]}]]],["scoped-parent",[[6,"scoped-parent",{"anArray":[16,"an-array"]}]]]], options);
 });

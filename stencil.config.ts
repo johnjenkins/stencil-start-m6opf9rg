@@ -18,6 +18,11 @@ export const config: Config = {
     },
     {
       type: 'dist-custom-elements',
+      // customElementsExportBehavior: 'bundle', 
+      customElementsExportBehavior: 'default',
+      // customElementsExportBehavior: 'auto-define-custom-elements',
+      // customElementsExportBehavior: 'single-export-module',
+
     }
   ],
   sourceMap: false,

@@ -6,7 +6,19 @@
  */
 import { HTMLStencilElement, JSXBase } from "@stencil/core/internal";
 export namespace Components {
-    interface CmpArrayCmp {
+    interface ScopedParent {
+        /**
+          * @default []
+         */
+        "anArray": any[];
+    }
+    interface ShadowChild1 {
+        /**
+          * @default []
+         */
+        "anArray": any[];
+    }
+    interface ShadowChild2 {
         /**
           * @default []
          */
@@ -14,32 +26,62 @@ export namespace Components {
     }
 }
 declare global {
-    interface HTMLCmpArrayCmpElement extends Components.CmpArrayCmp, HTMLStencilElement {
+    interface HTMLScopedParentElement extends Components.ScopedParent, HTMLStencilElement {
     }
-    var HTMLCmpArrayCmpElement: {
-        prototype: HTMLCmpArrayCmpElement;
-        new (): HTMLCmpArrayCmpElement;
+    var HTMLScopedParentElement: {
+        prototype: HTMLScopedParentElement;
+        new (): HTMLScopedParentElement;
+    };
+    interface HTMLShadowChild1Element extends Components.ShadowChild1, HTMLStencilElement {
+    }
+    var HTMLShadowChild1Element: {
+        prototype: HTMLShadowChild1Element;
+        new (): HTMLShadowChild1Element;
+    };
+    interface HTMLShadowChild2Element extends Components.ShadowChild2, HTMLStencilElement {
+    }
+    var HTMLShadowChild2Element: {
+        prototype: HTMLShadowChild2Element;
+        new (): HTMLShadowChild2Element;
     };
     interface HTMLElementTagNameMap {
-        "cmp-array-cmp": HTMLCmpArrayCmpElement;
+        "scoped-parent": HTMLScopedParentElement;
+        "shadow-child-1": HTMLShadowChild1Element;
+        "shadow-child-2": HTMLShadowChild2Element;
     }
 }
 declare namespace LocalJSX {
-    interface CmpArrayCmp {
+    interface ScopedParent {
+        /**
+          * @default []
+         */
+        "anArray"?: any[];
+    }
+    interface ShadowChild1 {
+        /**
+          * @default []
+         */
+        "anArray"?: any[];
+    }
+    interface ShadowChild2 {
         /**
           * @default []
          */
         "anArray"?: any[];
     }
     interface IntrinsicElements {
-        "cmp-array-cmp": CmpArrayCmp;
+        "scoped-parent": ScopedParent;
+        "shadow-child-1": ShadowChild1;
+        "shadow-child-2": ShadowChild2;
     }
 }
 export { LocalJSX as JSX };
 declare module "@stencil/core" {
     export namespace JSX {
         interface IntrinsicElements {
-            "cmp-array-cmp": LocalJSX.CmpArrayCmp & JSXBase.HTMLAttributes<HTMLCmpArrayCmpElement>;
+            "scoped-parent": LocalJSX.ScopedParent & JSXBase.HTMLAttributes<HTMLScopedParentElement>;
+            "shadow-child-1": LocalJSX.ShadowChild1 & JSXBase.HTMLAttributes<HTMLShadowChild1Element>;
+            "shadow-child-2": LocalJSX.ShadowChild2 & JSXBase.HTMLAttributes<HTMLShadowChild2Element>;
         }
     }
 }

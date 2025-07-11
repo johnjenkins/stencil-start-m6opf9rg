@@ -1,11 +1,8 @@
 const NAMESPACE = 'myapp';
-const BUILD = /* myapp */ { hydratedSelectorName: "hydrated", lazyLoad: true, updatable: true, watchCallback: false };
-
-const globalScripts = () => {};
-const globalStyles = "";
+const BUILD = /* myapp */ { experimentalSlotFixes: true, hydratedSelectorName: "hydrated", lazyLoad: true, shadowDom: true, slotRelocation: true, updatable: true, watchCallback: false };
 
 /*
- Stencil Client Platform v4.35.1-dev.1750682262.1ce9541 | MIT Licensed | https://stenciljs.com
+ Stencil Client Platform v4.35.3 | MIT Licensed | https://stenciljs.com
  */
 var __defProp = Object.defineProperty;
 var __export = (target, all) => {
@@ -124,6 +121,7 @@ var plt = {
   rel: (el, eventName, listener, opts) => el.removeEventListener(eventName, listener, opts),
   ce: (eventName, opts) => new CustomEvent(eventName, opts)
 };
+var supportsShadow = BUILD.shadowDom;
 var promiseResolve = (v) => Promise.resolve(v);
 var supportsConstructableStylesheets = /* @__PURE__ */ (() => {
   try {
@@ -168,6 +166,9 @@ var flush = () => {
 };
 var nextTick = (cb) => promiseResolve().then(cb);
 var writeTask = /* @__PURE__ */ queueTask(queueDomWrites, true);
+
+// src/utils/helpers.ts
+var isDef = (v) => v != null && v !== void 0;
 var isComplexType = (o) => {
   o = typeof o;
   return o === "object" || o === "function";
@@ -335,14 +336,41 @@ function deserializeProperty(value) {
   }
   return RemoteValue.fromLocalValue(JSON.parse(atob(value.slice(SERIALIZED_PREFIX.length))));
 }
-function createShadowRoot(cmpMeta) {
-  const shadowRoot = this.attachShadow({ mode: "open" });
-  if (supportsConstructableStylesheets) {
-    const sheet = new CSSStyleSheet();
-    sheet.replaceSync(globalStyles);
-    shadowRoot.adoptedStyleSheets.push(sheet);
-  }
+
+// src/utils/style.ts
+function createStyleSheetIfNeededAndSupported(styles2) {
+  return void 0;
 }
+
+// src/utils/shadow-root.ts
+var globalStyleSheet;
+function createShadowRoot(cmpMeta) {
+  var _a;
+  const shadowRoot = this.attachShadow({ mode: "open" });
+  if (globalStyleSheet === void 0) globalStyleSheet = (_a = createStyleSheetIfNeededAndSupported()) != null ? _a : null;
+  if (globalStyleSheet) shadowRoot.adoptedStyleSheets.push(globalStyleSheet);
+}
+var updateFallbackSlotVisibility = (elm) => {
+  const childNodes = internalCall(elm, "childNodes");
+  if (elm.tagName && elm.tagName.includes("-") && elm["s-cr"] && elm.tagName !== "SLOT-FB") {
+    getHostSlotNodes(childNodes, elm.tagName).forEach((slotNode) => {
+      if (slotNode.nodeType === 1 /* ElementNode */ && slotNode.tagName === "SLOT-FB") {
+        if (getSlotChildSiblings(slotNode, getSlotName(slotNode), false).length) {
+          slotNode.hidden = true;
+        } else {
+          slotNode.hidden = false;
+        }
+      }
+    });
+  }
+  let i2 = 0;
+  for (i2 = 0; i2 < childNodes.length; i2++) {
+    const childNode = childNodes[i2];
+    if (childNode.nodeType === 1 /* ElementNode */ && internalCall(childNode, "childNodes").length) {
+      updateFallbackSlotVisibility(childNode);
+    }
+  }
+};
 var getSlottedChildNodes = (childNodes) => {
   const result = [];
   for (let i2 = 0; i2 < childNodes.length; i2++) {
@@ -367,6 +395,30 @@ function getHostSlotNodes(childNodes, hostName, slotName) {
   }
   return slottedNodes;
 }
+var getSlotChildSiblings = (slot, slotName, includeSlot = true) => {
+  const childNodes = [];
+  if (includeSlot && slot["s-sr"] || !slot["s-sr"]) childNodes.push(slot);
+  let node = slot;
+  while (node = node.nextSibling) {
+    if (getSlotName(node) === slotName && (includeSlot || !node["s-sr"])) childNodes.push(node);
+  }
+  return childNodes;
+};
+var isNodeLocatedInSlot = (nodeToRelocate, slotName) => {
+  if (nodeToRelocate.nodeType === 1 /* ElementNode */) {
+    if (nodeToRelocate.getAttribute("slot") === null && slotName === "") {
+      return true;
+    }
+    if (nodeToRelocate.getAttribute("slot") === slotName) {
+      return true;
+    }
+    return false;
+  }
+  if (nodeToRelocate["s-sn"] === slotName) {
+    return true;
+  }
+  return slotName === "";
+};
 var addSlotRelocateNode = (newChild, slotNode, prepend, position) => {
   if (newChild["s-ol"] && newChild["s-ol"].isConnected) {
     return;
@@ -375,7 +427,7 @@ var addSlotRelocateNode = (newChild, slotNode, prepend, position) => {
   slottedNodeLocation["s-nr"] = newChild;
   if (!slotNode["s-cr"] || !slotNode["s-cr"].parentNode) return;
   const parent = slotNode["s-cr"].parentNode;
-  const appendMethod = internalCall(parent, "appendChild");
+  const appendMethod = prepend ? internalCall(parent, "prepend") : internalCall(parent, "appendChild");
   if (typeof position !== "undefined") {
     slottedNodeLocation["s-oo"] = position;
     const childNodes = internalCall(parent, "childNodes");
@@ -435,6 +487,267 @@ function findSlotFromSlottedNode(slottedNode, parentHost) {
   const slotNode = getHostSlotNodes(childNodes, parentHost.tagName, slotName)[0];
   return { slotNode, slotName };
 }
+
+// src/runtime/dom-extras.ts
+var patchPseudoShadowDom = (hostElementPrototype) => {
+  patchCloneNode(hostElementPrototype);
+  patchSlotAppendChild(hostElementPrototype);
+  patchSlotAppend(hostElementPrototype);
+  patchSlotPrepend(hostElementPrototype);
+  patchSlotInsertAdjacentElement(hostElementPrototype);
+  patchSlotInsertAdjacentHTML(hostElementPrototype);
+  patchSlotInsertAdjacentText(hostElementPrototype);
+  patchInsertBefore(hostElementPrototype);
+  patchTextContent(hostElementPrototype);
+  patchChildSlotNodes(hostElementPrototype);
+  patchSlotRemoveChild(hostElementPrototype);
+};
+var patchCloneNode = (HostElementPrototype) => {
+  const orgCloneNode = HostElementPrototype.cloneNode;
+  HostElementPrototype.cloneNode = function(deep) {
+    const srcNode = this;
+    const isShadowDom = srcNode.shadowRoot && supportsShadow ;
+    const clonedNode = orgCloneNode.call(srcNode, isShadowDom ? deep : false);
+    if (!isShadowDom && deep) {
+      let i2 = 0;
+      let slotted, nonStencilNode;
+      const stencilPrivates = [
+        "s-id",
+        "s-cr",
+        "s-lr",
+        "s-rc",
+        "s-sc",
+        "s-p",
+        "s-cn",
+        "s-sr",
+        "s-sn",
+        "s-hn",
+        "s-ol",
+        "s-nr",
+        "s-si",
+        "s-rf",
+        "s-scs"
+      ];
+      const childNodes = this.__childNodes || this.childNodes;
+      for (; i2 < childNodes.length; i2++) {
+        slotted = childNodes[i2]["s-nr"];
+        nonStencilNode = stencilPrivates.every((privateField) => !childNodes[i2][privateField]);
+        if (slotted) {
+          if (clonedNode.__appendChild) {
+            clonedNode.__appendChild(slotted.cloneNode(true));
+          } else {
+            clonedNode.appendChild(slotted.cloneNode(true));
+          }
+        }
+        if (nonStencilNode) {
+          clonedNode.appendChild(childNodes[i2].cloneNode(true));
+        }
+      }
+    }
+    return clonedNode;
+  };
+};
+var patchSlotAppendChild = (HostElementPrototype) => {
+  HostElementPrototype.__appendChild = HostElementPrototype.appendChild;
+  HostElementPrototype.appendChild = function(newChild) {
+    const { slotName, slotNode } = findSlotFromSlottedNode(newChild, this);
+    if (slotNode) {
+      addSlotRelocateNode(newChild, slotNode);
+      const slotChildNodes = getSlotChildSiblings(slotNode, slotName);
+      const appendAfter = slotChildNodes[slotChildNodes.length - 1];
+      const parent = internalCall(appendAfter, "parentNode");
+      const insertedNode = internalCall(parent, "insertBefore")(newChild, appendAfter.nextSibling);
+      dispatchSlotChangeEvent(slotNode);
+      updateFallbackSlotVisibility(this);
+      return insertedNode;
+    }
+    return this.__appendChild(newChild);
+  };
+};
+var patchSlotRemoveChild = (ElementPrototype) => {
+  ElementPrototype.__removeChild = ElementPrototype.removeChild;
+  ElementPrototype.removeChild = function(toRemove) {
+    if (toRemove && typeof toRemove["s-sn"] !== "undefined") {
+      const childNodes = this.__childNodes || this.childNodes;
+      const slotNode = getHostSlotNodes(childNodes, this.tagName, toRemove["s-sn"]);
+      if (slotNode && toRemove.isConnected) {
+        toRemove.remove();
+        updateFallbackSlotVisibility(this);
+        return;
+      }
+    }
+    return this.__removeChild(toRemove);
+  };
+};
+var patchSlotPrepend = (HostElementPrototype) => {
+  HostElementPrototype.__prepend = HostElementPrototype.prepend;
+  HostElementPrototype.prepend = function(...newChildren) {
+    newChildren.forEach((newChild) => {
+      if (typeof newChild === "string") {
+        newChild = this.ownerDocument.createTextNode(newChild);
+      }
+      const slotName = (newChild["s-sn"] = getSlotName(newChild)) || "";
+      const childNodes = internalCall(this, "childNodes");
+      const slotNode = getHostSlotNodes(childNodes, this.tagName, slotName)[0];
+      if (slotNode) {
+        addSlotRelocateNode(newChild, slotNode, true);
+        const slotChildNodes = getSlotChildSiblings(slotNode, slotName);
+        const appendAfter = slotChildNodes[0];
+        const parent = internalCall(appendAfter, "parentNode");
+        const toReturn = internalCall(parent, "insertBefore")(newChild, internalCall(appendAfter, "nextSibling"));
+        dispatchSlotChangeEvent(slotNode);
+        return toReturn;
+      }
+      if (newChild.nodeType === 1 && !!newChild.getAttribute("slot")) {
+        newChild.hidden = true;
+      }
+      return HostElementPrototype.__prepend(newChild);
+    });
+  };
+};
+var patchSlotAppend = (HostElementPrototype) => {
+  HostElementPrototype.__append = HostElementPrototype.append;
+  HostElementPrototype.append = function(...newChildren) {
+    newChildren.forEach((newChild) => {
+      if (typeof newChild === "string") {
+        newChild = this.ownerDocument.createTextNode(newChild);
+      }
+      this.appendChild(newChild);
+    });
+  };
+};
+var patchSlotInsertAdjacentHTML = (HostElementPrototype) => {
+  const originalInsertAdjacentHtml = HostElementPrototype.insertAdjacentHTML;
+  HostElementPrototype.insertAdjacentHTML = function(position, text) {
+    if (position !== "afterbegin" && position !== "beforeend") {
+      return originalInsertAdjacentHtml.call(this, position, text);
+    }
+    const container = this.ownerDocument.createElement("_");
+    let node;
+    container.innerHTML = text;
+    if (position === "afterbegin") {
+      while (node = container.firstChild) {
+        this.prepend(node);
+      }
+    } else if (position === "beforeend") {
+      while (node = container.firstChild) {
+        this.append(node);
+      }
+    }
+  };
+};
+var patchSlotInsertAdjacentText = (HostElementPrototype) => {
+  HostElementPrototype.insertAdjacentText = function(position, text) {
+    this.insertAdjacentHTML(position, text);
+  };
+};
+var patchInsertBefore = (HostElementPrototype) => {
+  const eleProto = HostElementPrototype;
+  if (eleProto.__insertBefore) return;
+  eleProto.__insertBefore = HostElementPrototype.insertBefore;
+  HostElementPrototype.insertBefore = function(newChild, currentChild) {
+    const { slotName, slotNode } = findSlotFromSlottedNode(newChild, this);
+    const slottedNodes = this.__childNodes ? this.childNodes : getSlottedChildNodes(this.childNodes);
+    if (slotNode) {
+      let found = false;
+      slottedNodes.forEach((childNode) => {
+        if (childNode === currentChild || currentChild === null) {
+          found = true;
+          if (currentChild === null || slotName !== currentChild["s-sn"]) {
+            this.appendChild(newChild);
+            return;
+          }
+          if (slotName === currentChild["s-sn"]) {
+            addSlotRelocateNode(newChild, slotNode);
+            const parent = internalCall(currentChild, "parentNode");
+            internalCall(parent, "insertBefore")(newChild, currentChild);
+            dispatchSlotChangeEvent(slotNode);
+          }
+          return;
+        }
+      });
+      if (found) return newChild;
+    }
+    const parentNode = currentChild == null ? void 0 : currentChild.__parentNode;
+    if (parentNode && !this.isSameNode(parentNode)) {
+      return this.appendChild(newChild);
+    }
+    return this.__insertBefore(newChild, currentChild);
+  };
+};
+var patchSlotInsertAdjacentElement = (HostElementPrototype) => {
+  const originalInsertAdjacentElement = HostElementPrototype.insertAdjacentElement;
+  HostElementPrototype.insertAdjacentElement = function(position, element) {
+    if (position !== "afterbegin" && position !== "beforeend") {
+      return originalInsertAdjacentElement.call(this, position, element);
+    }
+    if (position === "afterbegin") {
+      this.prepend(element);
+      return element;
+    } else if (position === "beforeend") {
+      this.append(element);
+      return element;
+    }
+    return element;
+  };
+};
+var patchTextContent = (hostElementPrototype) => {
+  patchHostOriginalAccessor("textContent", hostElementPrototype);
+  Object.defineProperty(hostElementPrototype, "textContent", {
+    get: function() {
+      let text = "";
+      const childNodes = this.__childNodes ? this.childNodes : getSlottedChildNodes(this.childNodes);
+      childNodes.forEach((node) => text += node.textContent || "");
+      return text;
+    },
+    set: function(value) {
+      const childNodes = this.__childNodes ? this.childNodes : getSlottedChildNodes(this.childNodes);
+      childNodes.forEach((node) => {
+        if (node["s-ol"]) node["s-ol"].remove();
+        node.remove();
+      });
+      this.insertAdjacentHTML("beforeend", value);
+    }
+  });
+};
+var patchChildSlotNodes = (elm) => {
+  class FakeNodeList extends Array {
+    item(n) {
+      return this[n];
+    }
+  }
+  patchHostOriginalAccessor("children", elm);
+  Object.defineProperty(elm, "children", {
+    get() {
+      return this.childNodes.filter((n) => n.nodeType === 1);
+    }
+  });
+  Object.defineProperty(elm, "childElementCount", {
+    get() {
+      return this.children.length;
+    }
+  });
+  patchHostOriginalAccessor("firstChild", elm);
+  Object.defineProperty(elm, "firstChild", {
+    get() {
+      return this.childNodes[0];
+    }
+  });
+  patchHostOriginalAccessor("lastChild", elm);
+  Object.defineProperty(elm, "lastChild", {
+    get() {
+      return this.childNodes[this.childNodes.length - 1];
+    }
+  });
+  patchHostOriginalAccessor("childNodes", elm);
+  Object.defineProperty(elm, "childNodes", {
+    get() {
+      const result = new FakeNodeList();
+      result.push(...getSlottedChildNodes(this.__childNodes));
+      return result;
+    }
+  });
+};
 var patchSlottedNode = (node) => {
   if (!node || node.__nextSibling !== void 0 || !globalThis.Node) return;
   patchNextSibling(node);
@@ -617,7 +930,7 @@ var addStyle = (styleContainerNode, cmpMeta, mode) => {
               if (supportsConstructableStylesheets) {
                 const stylesheet = new CSSStyleSheet();
                 stylesheet.replaceSync(style);
-                styleContainerNode.adoptedStyleSheets = [stylesheet, ...styleContainerNode.adoptedStyleSheets];
+                styleContainerNode.adoptedStyleSheets.unshift(stylesheet);
               } else {
                 const existingStyleContainer = styleContainerNode.querySelector("style");
                 if (existingStyleContainer) {
@@ -642,7 +955,7 @@ var addStyle = (styleContainerNode, cmpMeta, mode) => {
         }
       }
     } else if (!styleContainerNode.adoptedStyleSheets.includes(style)) {
-      styleContainerNode.adoptedStyleSheets = [...styleContainerNode.adoptedStyleSheets, style];
+      styleContainerNode.adoptedStyleSheets.push(style);
     }
   }
   return scopeId2;
@@ -676,6 +989,7 @@ var hydrateScopedToShadow = () => {
 var h = (nodeName, vnodeData, ...children) => {
   let child = null;
   let key = null;
+  let slotName = null;
   let simple = false;
   let lastSimple = false;
   const vNodeChildren = [];
@@ -702,6 +1016,9 @@ var h = (nodeName, vnodeData, ...children) => {
     if (vnodeData.key) {
       key = vnodeData.key;
     }
+    if (vnodeData.name) {
+      slotName = vnodeData.name;
+    }
   }
   const vnode = newVNode(nodeName, null);
   vnode.$attrs$ = vnodeData;
@@ -710,6 +1027,9 @@ var h = (nodeName, vnodeData, ...children) => {
   }
   {
     vnode.$key$ = key;
+  }
+  {
+    vnode.$name$ = slotName;
   }
   return vnode;
 };
@@ -726,6 +1046,9 @@ var newVNode = (tag, text) => {
   }
   {
     vnode.$key$ = null;
+  }
+  {
+    vnode.$name$ = null;
   }
   return vnode;
 };
@@ -757,6 +1080,16 @@ var initializeClientHydrate = (hostElm, tagName, hostId, hostRef) => {
       (_b2 = hostRef == null ? void 0 : hostRef.$instanceValues$) == null ? void 0 : _b2.set(memberName, attrPropVal);
     }
   });
+  let scopeId2;
+  {
+    const cmpMeta = hostRef.$cmpMeta$;
+    if (cmpMeta && cmpMeta.$flags$ & 10 /* needsScopedEncapsulation */ && hostElm["s-sc"]) {
+      scopeId2 = hostElm["s-sc"];
+      hostElm.classList.add(scopeId2 + "-h");
+    } else if (hostElm["s-sc"]) {
+      delete hostElm["s-sc"];
+    }
+  }
   if (win.document && (!plt.$orgLocNodes$ || !plt.$orgLocNodes$.size)) {
     initializeDocumentHydrate(win.document.body, plt.$orgLocNodes$ = /* @__PURE__ */ new Map());
   }
@@ -816,7 +1149,9 @@ var initializeClientHydrate = (hostElm, tagName, hostId, hostRef) => {
         node["s-oo"] = parseInt(childRenderNode.$nodeId$);
       }
     }
-    if (orgLocationNode && !orgLocationNode["s-id"]) plt.$orgLocNodes$.delete(orgLocationId);
+    if (orgLocationNode && !orgLocationNode["s-id"]) {
+      plt.$orgLocNodes$.delete(orgLocationId);
+    }
   }
   const hosts = [];
   const snLen = slottedNodes.length;
@@ -856,6 +1191,11 @@ var initializeClientHydrate = (hostElm, tagName, hostId, hostRef) => {
       }
     }
   }
+  if (scopeId2 && slotNodes.length) {
+    slotNodes.forEach((slot) => {
+      slot.$elm$.parentElement.classList.add(scopeId2 + "-s");
+    });
+  }
   if (shadowRoot) {
     let rnIdex = 0;
     const rnLen = shadowRootNodes.length;
@@ -882,6 +1222,7 @@ var clientHydrate = (parentVNode, childRenderNodes, slotNodes, shadowRootNodes, 
   let childIdSplt;
   let childVNode;
   let i2;
+  const scopeId2 = hostElm["s-sc"];
   if (node.nodeType === 1 /* ElementNode */) {
     childNodeType = node.getAttribute(HYDRATE_CHILD_ID);
     if (childNodeType) {
@@ -904,6 +1245,10 @@ var clientHydrate = (parentVNode, childRenderNodes, slotNodes, shadowRootNodes, 
         if (!parentVNode.$children$) {
           parentVNode.$children$ = [];
         }
+        if (scopeId2 && childIdSplt[0] === hostId) {
+          node["s-si"] = scopeId2;
+          childVNode.$attrs$.class += " " + scopeId2;
+        }
         const slotName = childVNode.$elm$.getAttribute("s-sn");
         if (typeof slotName === "string") {
           if (childVNode.$tag$ === "slot-fb") {
@@ -918,6 +1263,9 @@ var clientHydrate = (parentVNode, childRenderNodes, slotNodes, shadowRootNodes, 
               shadowRootNodes,
               slottedNodes
             );
+            if (scopeId2) {
+              node.classList.add(scopeId2);
+            }
           }
           childVNode.$elm$["s-sn"] = slotName;
           childVNode.$elm$.removeAttribute("s-sn");
@@ -1014,6 +1362,9 @@ var clientHydrate = (parentVNode, childRenderNodes, slotNodes, shadowRootNodes, 
         } else if (childNodeType === CONTENT_REF_ID) {
           if (shadowRootNodes) {
             node.remove();
+          } else {
+            hostElm["s-cr"] = node;
+            node["s-cn"] = true;
           }
         }
       }
@@ -1198,14 +1549,43 @@ function sortedAttrNames(attrNames) {
     attrNames
   );
 }
+
+// src/runtime/vdom/vdom-render.ts
+var scopeId;
+var contentRef;
 var hostTagName;
+var useNativeShadowDom = false;
+var checkSlotFallbackVisibility = false;
+var checkSlotRelocate = false;
 var createElm = (oldParentVNode, newParentVNode, childIndex) => {
+  var _a;
   const newVNode2 = newParentVNode.$children$[childIndex];
   let i2 = 0;
   let elm;
   let childNode;
+  let oldVNode;
+  if (!useNativeShadowDom) {
+    checkSlotRelocate = true;
+    if (newVNode2.$tag$ === "slot") {
+      newVNode2.$flags$ |= newVNode2.$children$ ? (
+        // slot element has fallback content
+        // still create an element that "mocks" the slot element
+        2 /* isSlotFallback */
+      ) : (
+        // slot element does not have fallback content
+        // create an html comment we'll use to always reference
+        // where actual slot content should sit next to
+        1 /* isSlotReference */
+      );
+    }
+  }
   if (newVNode2.$text$ !== null) {
     elm = newVNode2.$elm$ = win.document.createTextNode(newVNode2.$text$);
+  } else if (newVNode2.$flags$ & 1 /* isSlotReference */) {
+    elm = newVNode2.$elm$ = win.document.createTextNode("");
+    {
+      updateElement(null, newVNode2);
+    }
   } else {
     if (!win.document) {
       throw new Error(
@@ -1213,10 +1593,13 @@ var createElm = (oldParentVNode, newParentVNode, childIndex) => {
       );
     }
     elm = newVNode2.$elm$ = win.document.createElement(
-      newVNode2.$tag$
+      !useNativeShadowDom && BUILD.slotRelocation && newVNode2.$flags$ & 2 /* isSlotFallback */ ? "slot-fb" : newVNode2.$tag$
     );
     {
       updateElement(null, newVNode2);
+    }
+    if (isDef(scopeId) && elm["s-si"] !== scopeId) {
+      elm.classList.add(elm["s-si"] = scopeId);
     }
     if (newVNode2.$children$) {
       for (i2 = 0; i2 < newVNode2.$children$.length; ++i2) {
@@ -1228,10 +1611,74 @@ var createElm = (oldParentVNode, newParentVNode, childIndex) => {
     }
   }
   elm["s-hn"] = hostTagName;
+  {
+    if (newVNode2.$flags$ & (2 /* isSlotFallback */ | 1 /* isSlotReference */)) {
+      elm["s-sr"] = true;
+      elm["s-cr"] = contentRef;
+      elm["s-sn"] = newVNode2.$name$ || "";
+      elm["s-rf"] = (_a = newVNode2.$attrs$) == null ? void 0 : _a.ref;
+      patchSlotNode(elm);
+      oldVNode = oldParentVNode && oldParentVNode.$children$ && oldParentVNode.$children$[childIndex];
+      if (oldVNode && oldVNode.$tag$ === newVNode2.$tag$ && oldParentVNode.$elm$) {
+        {
+          relocateToHostRoot(oldParentVNode.$elm$);
+        }
+      }
+      {
+        addRemoveSlotScopedClass(contentRef, elm, newParentVNode.$elm$, oldParentVNode == null ? void 0 : oldParentVNode.$elm$);
+      }
+    }
+  }
   return elm;
 };
+var relocateToHostRoot = (parentElm) => {
+  plt.$flags$ |= 1 /* isTmpDisconnected */;
+  const host = parentElm.closest(hostTagName.toLowerCase());
+  if (host != null) {
+    const contentRefNode = Array.from(host.__childNodes || host.childNodes).find(
+      (ref) => ref["s-cr"]
+    );
+    const childNodeArray = Array.from(
+      parentElm.__childNodes || parentElm.childNodes
+    );
+    for (const childNode of contentRefNode ? childNodeArray.reverse() : childNodeArray) {
+      if (childNode["s-sh"] != null) {
+        insertBefore(host, childNode, contentRefNode != null ? contentRefNode : null);
+        childNode["s-sh"] = void 0;
+        checkSlotRelocate = true;
+      }
+    }
+  }
+  plt.$flags$ &= -2 /* isTmpDisconnected */;
+};
+var putBackInOriginalLocation = (parentElm, recursive) => {
+  plt.$flags$ |= 1 /* isTmpDisconnected */;
+  const oldSlotChildNodes = Array.from(parentElm.__childNodes || parentElm.childNodes);
+  if (parentElm["s-sr"] && BUILD.experimentalSlotFixes) {
+    let node = parentElm;
+    while (node = node.nextSibling) {
+      if (node && node["s-sn"] === parentElm["s-sn"] && node["s-sh"] === hostTagName) {
+        oldSlotChildNodes.push(node);
+      }
+    }
+  }
+  for (let i2 = oldSlotChildNodes.length - 1; i2 >= 0; i2--) {
+    const childNode = oldSlotChildNodes[i2];
+    if (childNode["s-hn"] !== hostTagName && childNode["s-ol"]) {
+      insertBefore(referenceNode(childNode).parentNode, childNode, referenceNode(childNode));
+      childNode["s-ol"].remove();
+      childNode["s-ol"] = void 0;
+      childNode["s-sh"] = void 0;
+      checkSlotRelocate = true;
+    }
+    if (recursive) {
+      putBackInOriginalLocation(childNode, recursive);
+    }
+  }
+  plt.$flags$ &= -2 /* isTmpDisconnected */;
+};
 var addVnodes = (parentElm, before, parentVNode, vnodes, startIdx, endIdx) => {
-  let containerElm = parentElm;
+  let containerElm = parentElm["s-cr"] && parentElm["s-cr"].parentNode || parentElm;
   let childNode;
   if (containerElm.shadowRoot && containerElm.tagName === hostTagName) {
     containerElm = containerElm.shadowRoot;
@@ -1241,7 +1688,7 @@ var addVnodes = (parentElm, before, parentVNode, vnodes, startIdx, endIdx) => {
       childNode = createElm(null, parentVNode, startIdx);
       if (childNode) {
         vnodes[startIdx].$elm$ = childNode;
-        insertBefore(containerElm, childNode, before);
+        insertBefore(containerElm, childNode, referenceNode(before) );
       }
     }
   }
@@ -1252,6 +1699,14 @@ var removeVnodes = (vnodes, startIdx, endIdx) => {
     if (vnode) {
       const elm = vnode.$elm$;
       if (elm) {
+        {
+          checkSlotFallbackVisibility = true;
+          if (elm["s-ol"]) {
+            elm["s-ol"].remove();
+          } else {
+            putBackInOriginalLocation(elm, true);
+          }
+        }
         elm.remove();
       }
     }
@@ -1288,11 +1743,17 @@ var updateChildren = (parentElm, oldCh, newVNode2, newCh, isInitialRender = fals
       oldEndVnode = oldCh[--oldEndIdx];
       newEndVnode = newCh[--newEndIdx];
     } else if (isSameVnode(oldStartVnode, newEndVnode, isInitialRender)) {
+      if ((oldStartVnode.$tag$ === "slot" || newEndVnode.$tag$ === "slot")) {
+        putBackInOriginalLocation(oldStartVnode.$elm$.parentNode, false);
+      }
       patch(oldStartVnode, newEndVnode, isInitialRender);
       insertBefore(parentElm, oldStartVnode.$elm$, oldEndVnode.$elm$.nextSibling);
       oldStartVnode = oldCh[++oldStartIdx];
       newEndVnode = newCh[--newEndIdx];
     } else if (isSameVnode(oldEndVnode, newStartVnode, isInitialRender)) {
+      if ((oldStartVnode.$tag$ === "slot" || newEndVnode.$tag$ === "slot")) {
+        putBackInOriginalLocation(oldEndVnode.$elm$.parentNode, false);
+      }
       patch(oldEndVnode, newStartVnode, isInitialRender);
       insertBefore(parentElm, oldEndVnode.$elm$, oldStartVnode.$elm$);
       oldEndVnode = oldCh[--oldEndIdx];
@@ -1323,7 +1784,11 @@ var updateChildren = (parentElm, oldCh, newVNode2, newCh, isInitialRender = fals
       }
       if (node) {
         {
-          insertBefore(oldStartVnode.$elm$.parentNode, node, oldStartVnode.$elm$);
+          insertBefore(
+            referenceNode(oldStartVnode.$elm$).parentNode,
+            node,
+            referenceNode(oldStartVnode.$elm$)
+          );
         }
       }
     }
@@ -1343,6 +1808,9 @@ var updateChildren = (parentElm, oldCh, newVNode2, newCh, isInitialRender = fals
 };
 var isSameVnode = (leftVNode, rightVNode, isInitialRender = false) => {
   if (leftVNode.$tag$ === rightVNode.$tag$) {
+    if (leftVNode.$tag$ === "slot") {
+      return leftVNode.$name$ === rightVNode.$name$;
+    }
     if (!isInitialRender) {
       return leftVNode.$key$ === rightVNode.$key$;
     }
@@ -1353,13 +1821,22 @@ var isSameVnode = (leftVNode, rightVNode, isInitialRender = false) => {
   }
   return false;
 };
+var referenceNode = (node) => node && node["s-ol"] || node;
 var patch = (oldVNode, newVNode2, isInitialRender = false) => {
   const elm = newVNode2.$elm$ = oldVNode.$elm$;
   const oldChildren = oldVNode.$children$;
   const newChildren = newVNode2.$children$;
+  const tag = newVNode2.$tag$;
   const text = newVNode2.$text$;
+  let defaultHolder;
   if (text === null) {
     {
+      if (tag === "slot" && !useNativeShadowDom) {
+        if (oldVNode.$name$ !== newVNode2.$name$) {
+          newVNode2.$elm$["s-sn"] = newVNode2.$name$ || "";
+          relocateToHostRoot(newVNode2.$elm$.parentElement);
+        }
+      }
       updateElement(oldVNode, newVNode2);
     }
     if (oldChildren !== null && newChildren !== null) {
@@ -1374,13 +1851,69 @@ var patch = (oldVNode, newVNode2, isInitialRender = false) => {
       !isInitialRender && BUILD.updatable && oldChildren !== null
     ) {
       removeVnodes(oldChildren, 0, oldChildren.length - 1);
+    } else if (isInitialRender && BUILD.updatable && oldChildren !== null && newChildren === null) {
+      newVNode2.$children$ = oldChildren;
     }
+  } else if ((defaultHolder = elm["s-cr"])) {
+    defaultHolder.parentNode.textContent = text;
   } else if (oldVNode.$text$ !== text) {
     elm.data = text;
   }
 };
+var relocateNodes = [];
+var markSlotContentForRelocation = (elm) => {
+  let node;
+  let hostContentNodes;
+  let j;
+  const children = elm.__childNodes || elm.childNodes;
+  for (const childNode of children) {
+    if (childNode["s-sr"] && (node = childNode["s-cr"]) && node.parentNode) {
+      hostContentNodes = node.parentNode.__childNodes || node.parentNode.childNodes;
+      const slotName = childNode["s-sn"];
+      for (j = hostContentNodes.length - 1; j >= 0; j--) {
+        node = hostContentNodes[j];
+        if (!node["s-cn"] && !node["s-nr"] && node["s-hn"] !== childNode["s-hn"] && (!node["s-sh"] || node["s-sh"] !== childNode["s-hn"])) {
+          if (isNodeLocatedInSlot(node, slotName)) {
+            let relocateNodeData = relocateNodes.find((r) => r.$nodeToRelocate$ === node);
+            checkSlotFallbackVisibility = true;
+            node["s-sn"] = node["s-sn"] || slotName;
+            if (relocateNodeData) {
+              relocateNodeData.$nodeToRelocate$["s-sh"] = childNode["s-hn"];
+              relocateNodeData.$slotRefNode$ = childNode;
+            } else {
+              node["s-sh"] = childNode["s-hn"];
+              relocateNodes.push({
+                $slotRefNode$: childNode,
+                $nodeToRelocate$: node
+              });
+            }
+            if (node["s-sr"]) {
+              relocateNodes.map((relocateNode) => {
+                if (isNodeLocatedInSlot(relocateNode.$nodeToRelocate$, node["s-sn"])) {
+                  relocateNodeData = relocateNodes.find((r) => r.$nodeToRelocate$ === node);
+                  if (relocateNodeData && !relocateNode.$slotRefNode$) {
+                    relocateNode.$slotRefNode$ = relocateNodeData.$slotRefNode$;
+                  }
+                }
+              });
+            }
+          } else if (!relocateNodes.some((r) => r.$nodeToRelocate$ === node)) {
+            relocateNodes.push({
+              $nodeToRelocate$: node
+            });
+          }
+        }
+      }
+    }
+    if (childNode.nodeType === 1 /* ElementNode */) {
+      markSlotContentForRelocation(childNode);
+    }
+  }
+};
 var insertBefore = (parent, newNode, reference) => {
-  if (typeof newNode["s-sn"] === "string") {
+  if (typeof newNode["s-sn"] === "string" && !!newNode["s-sr"] && !!newNode["s-cr"]) {
+    addRemoveSlotScopedClass(newNode["s-cr"], newNode, parent, newNode.parentElement);
+  } else if (typeof newNode["s-sn"] === "string") {
     if (parent.getRootNode().nodeType !== 11 /* DOCUMENT_FRAGMENT_NODE */) {
       patchParentNode(newNode);
     }
@@ -1395,8 +1928,29 @@ var insertBefore = (parent, newNode, reference) => {
     return parent == null ? void 0 : parent.insertBefore(newNode, reference);
   }
 };
+function addRemoveSlotScopedClass(reference, slotNode, newParent, oldParent) {
+  var _a, _b;
+  let scopeId2;
+  if (reference && typeof slotNode["s-sn"] === "string" && !!slotNode["s-sr"] && reference.parentNode && reference.parentNode["s-sc"] && (scopeId2 = slotNode["s-si"] || reference.parentNode["s-sc"])) {
+    const scopeName = slotNode["s-sn"];
+    const hostName = slotNode["s-hn"];
+    (_a = newParent.classList) == null ? void 0 : _a.add(scopeId2 + "-s");
+    if (oldParent && ((_b = oldParent.classList) == null ? void 0 : _b.contains(scopeId2 + "-s"))) {
+      let child = (oldParent.__childNodes || oldParent.childNodes)[0];
+      let found = false;
+      while (child) {
+        if (child["s-sn"] !== scopeName && child["s-hn"] === hostName && !!child["s-sr"]) {
+          found = true;
+          break;
+        }
+        child = child.nextSibling;
+      }
+      if (!found) oldParent.classList.remove(scopeId2 + "-s");
+    }
+  }
+}
 var renderVdom = (hostRef, renderFnResults, isInitialLoad = false) => {
-  var _e;
+  var _a, _b, _c, _d, _e;
   const hostElm = hostRef.$hostElement$;
   const cmpMeta = hostRef.$cmpMeta$;
   const oldVNode = hostRef.$vnode$ || newVNode(null, null);
@@ -1414,7 +1968,77 @@ var renderVdom = (hostRef, renderFnResults, isInitialLoad = false) => {
   rootVnode.$flags$ |= 4 /* isHost */;
   hostRef.$vnode$ = rootVnode;
   rootVnode.$elm$ = oldVNode.$elm$ = hostElm.shadowRoot || hostElm ;
+  {
+    scopeId = hostElm["s-sc"];
+  }
+  useNativeShadowDom = !!(cmpMeta.$flags$ & 1 /* shadowDomEncapsulation */) && !(cmpMeta.$flags$ & 128 /* shadowNeedsScopedCss */);
+  {
+    contentRef = hostElm["s-cr"];
+    checkSlotFallbackVisibility = false;
+  }
   patch(oldVNode, rootVnode, isInitialLoad);
+  {
+    plt.$flags$ |= 1 /* isTmpDisconnected */;
+    if (checkSlotRelocate) {
+      markSlotContentForRelocation(rootVnode.$elm$);
+      for (const relocateData of relocateNodes) {
+        const nodeToRelocate = relocateData.$nodeToRelocate$;
+        if (!nodeToRelocate["s-ol"] && win.document) {
+          const orgLocationNode = win.document.createTextNode("");
+          orgLocationNode["s-nr"] = nodeToRelocate;
+          insertBefore(nodeToRelocate.parentNode, nodeToRelocate["s-ol"] = orgLocationNode, nodeToRelocate);
+        }
+      }
+      for (const relocateData of relocateNodes) {
+        const nodeToRelocate = relocateData.$nodeToRelocate$;
+        const slotRefNode = relocateData.$slotRefNode$;
+        if (slotRefNode) {
+          const parentNodeRef = slotRefNode.parentNode;
+          let insertBeforeNode = slotRefNode.nextSibling;
+          if ((insertBeforeNode && insertBeforeNode.nodeType === 1 /* ElementNode */)) {
+            let orgLocationNode = (_a = nodeToRelocate["s-ol"]) == null ? void 0 : _a.previousSibling;
+            while (orgLocationNode) {
+              let refNode = (_b = orgLocationNode["s-nr"]) != null ? _b : null;
+              if (refNode && refNode["s-sn"] === nodeToRelocate["s-sn"] && parentNodeRef === (refNode.__parentNode || refNode.parentNode)) {
+                refNode = refNode.nextSibling;
+                while (refNode === nodeToRelocate || (refNode == null ? void 0 : refNode["s-sr"])) {
+                  refNode = refNode == null ? void 0 : refNode.nextSibling;
+                }
+                if (!refNode || !refNode["s-nr"]) {
+                  insertBeforeNode = refNode;
+                  break;
+                }
+              }
+              orgLocationNode = orgLocationNode.previousSibling;
+            }
+          }
+          const parent = nodeToRelocate.__parentNode || nodeToRelocate.parentNode;
+          const nextSibling = nodeToRelocate.__nextSibling || nodeToRelocate.nextSibling;
+          if (!insertBeforeNode && parentNodeRef !== parent || nextSibling !== insertBeforeNode) {
+            if (nodeToRelocate !== insertBeforeNode) {
+              insertBefore(parentNodeRef, nodeToRelocate, insertBeforeNode);
+              if (nodeToRelocate.nodeType === 1 /* ElementNode */ && nodeToRelocate.tagName !== "SLOT-FB") {
+                nodeToRelocate.hidden = (_c = nodeToRelocate["s-ih"]) != null ? _c : false;
+              }
+            }
+          }
+          nodeToRelocate && typeof slotRefNode["s-rf"] === "function" && slotRefNode["s-rf"](slotRefNode);
+        } else {
+          if (nodeToRelocate.nodeType === 1 /* ElementNode */) {
+            if (isInitialLoad) {
+              nodeToRelocate["s-ih"] = (_d = nodeToRelocate.hidden) != null ? _d : false;
+            }
+            nodeToRelocate.hidden = true;
+          }
+        }
+      }
+    }
+    if (checkSlotFallbackVisibility) {
+      updateFallbackSlotVisibility(rootVnode.$elm$);
+    }
+    plt.$flags$ &= -2 /* isTmpDisconnected */;
+    relocateNodes.length = 0;
+  }
   if (cmpMeta.$flags$ & 2 /* scopedCssEncapsulation */) {
     const children = rootVnode.$elm$.__childNodes || rootVnode.$elm$.childNodes;
     for (const childNode of children) {
@@ -1426,6 +2050,7 @@ var renderVdom = (hostRef, renderFnResults, isInitialLoad = false) => {
       }
     }
   }
+  contentRef = void 0;
 };
 
 // src/runtime/update-component.ts
@@ -1826,8 +2451,22 @@ var connectedCallback = (elm) => {
           if (cmpMeta.$flags$ & 1 /* shadowDomEncapsulation */) {
             const scopeId2 = addStyle(elm.shadowRoot, cmpMeta);
             elm.classList.remove(scopeId2 + "-h", scopeId2 + "-s");
+          } else if (cmpMeta.$flags$ & 2 /* scopedCssEncapsulation */) {
+            const scopeId2 = getScopeId(cmpMeta);
+            elm["s-sc"] = scopeId2;
           }
           initializeClientHydrate(elm, cmpMeta.$tagName$, hostId, hostRef);
+        }
+      }
+      if (!hostId) {
+        if (// TODO(STENCIL-854): Remove code related to legacy shadowDomShim field
+        cmpMeta.$flags$ & (4 /* hasSlotRelocation */ | 8 /* needsShadowDomShim */)) {
+          setContentReference(elm);
+        } else if (!(cmpMeta.$flags$ & 4 /* hasSlotRelocation */)) {
+          const commendPlaceholder = elm.firstChild;
+          if ((commendPlaceholder == null ? void 0 : commendPlaceholder.nodeType) === 8 /* CommentNode */ && !commendPlaceholder["s-cn"] && !commendPlaceholder.nodeValue) {
+            elm.removeChild(commendPlaceholder);
+          }
         }
       }
       {
@@ -1860,6 +2499,16 @@ var connectedCallback = (elm) => {
     }
     endConnected();
   }
+};
+var setContentReference = (elm) => {
+  if (!win.document) {
+    return;
+  }
+  const contentRefElm = elm["s-cr"] = win.document.createComment(
+    ""
+  );
+  contentRefElm["s-cn"] = true;
+  insertBefore(elm, contentRefElm, elm.firstChild);
 };
 var disconnectInstance = (instance, elm) => {
   {
@@ -1978,6 +2627,11 @@ var bootstrapLazy = (lazyBundles, options = {}) => {
           return getHostRef(this).$onReadyPromise$;
         }
       };
+      {
+        if (cmpMeta.$flags$ & 2 /* scopedCssEncapsulation */) {
+          patchPseudoShadowDom(HostElement.prototype);
+        }
+      }
       cmpMeta.$lazyBundleId$ = lazyBundle[0];
       if (!exclude.includes(tagName) && !customElements2.get(tagName)) {
         cmpTags.push(tagName);
@@ -2018,4 +2672,4 @@ var bootstrapLazy = (lazyBundles, options = {}) => {
 // src/runtime/nonce.ts
 var setNonce = (nonce) => plt.$nonce$ = nonce;
 
-export { Host as H, H as a, bootstrapLazy as b, globalScripts as g, h, promiseResolve as p, registerInstance as r, setNonce as s };
+export { Host as H, H as a, bootstrapLazy as b, h, promiseResolve as p, registerInstance as r, setNonce as s };

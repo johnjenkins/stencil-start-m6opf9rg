@@ -26,15 +26,12 @@ app.engine('.html', function (filePath, opts, callback) {
 
     return hydrate
       .renderToString(htmlString, {
-        serializeShadowRoot:'declarative-shadow-dom',
+        serializeShadowRoot: 'scoped',
         language: 'en-US',
         direction: 'ltr',
         runtimeLogging: true,
         fullDocument: true,
         prettyHtml: true,
-        beforeHydrate: (doc) => {
-          doc.querySelector('cmp-array-cmp').anArray = ['one', 'two', 'three'];
-        }
       })
       .then((resp) => {
         // console.log('incoming html', htmlString);
@@ -48,7 +45,7 @@ app.set('views', path.join(__dirname, 'views'));
 app.use(express.static(path.join(__dirname, 'public')));
 app.set('view engine', 'html');
 
-const buglist = ['cmp-arr-prop'];
+const buglist = ['slot-forwarding'];
 
 buglist.forEach((bug) => {
   app.get('/' + bug, (req, res) => {

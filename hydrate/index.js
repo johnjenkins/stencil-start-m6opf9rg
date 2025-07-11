@@ -130,7 +130,7 @@ const NAMESPACE = 'myapp';
 const BUILD = /* myapp */ { hydratedSelectorName: "hydrated", slotRelocation: true, updatable: true, watchCallback: false };
 
 /*
- Stencil Hydrate Platform v4.35.1-dev.1750682262.1ce9541 | MIT Licensed | https://stenciljs.com
+ Stencil Hydrate Platform v4.35.3 | MIT Licensed | https://stenciljs.com
  */
 var __defProp = Object.defineProperty;
 var __export = (target, all) => {
@@ -331,8 +331,19 @@ function deserializeProperty(value) {
   }
   return RemoteValue.fromLocalValue(JSON.parse(atob(value.slice(SERIALIZED_PREFIX.length))));
 }
+
+// src/utils/style.ts
+function createStyleSheetIfNeededAndSupported(styles2) {
+  return void 0;
+}
+
+// src/utils/shadow-root.ts
+var globalStyleSheet;
 function createShadowRoot(cmpMeta) {
-  this.attachShadow({ mode: "open" });
+  var _a;
+  const shadowRoot = this.attachShadow({ mode: "open" });
+  if (globalStyleSheet === void 0) globalStyleSheet = (_a = createStyleSheetIfNeededAndSupported()) != null ? _a : null;
+  if (globalStyleSheet) shadowRoot.adoptedStyleSheets.push(globalStyleSheet);
 }
 
 // src/runtime/runtime-constants.ts
@@ -683,6 +694,16 @@ var initializeClientHydrate = (hostElm, tagName, hostId, hostRef) => {
       (_b2 = hostRef == null ? void 0 : hostRef.$instanceValues$) == null ? void 0 : _b2.set(memberName, attrPropVal);
     }
   });
+  let scopeId2;
+  {
+    const cmpMeta = hostRef.$cmpMeta$;
+    if (cmpMeta && cmpMeta.$flags$ & 10 /* needsScopedEncapsulation */ && hostElm["s-sc"]) {
+      scopeId2 = hostElm["s-sc"];
+      hostElm.classList.add(scopeId2 + "-h");
+    } else if (hostElm["s-sc"]) {
+      delete hostElm["s-sc"];
+    }
+  }
   if (win.document && (!plt.$orgLocNodes$ || !plt.$orgLocNodes$.size)) {
     initializeDocumentHydrate(win.document.body, plt.$orgLocNodes$ = /* @__PURE__ */ new Map());
   }
@@ -742,7 +763,9 @@ var initializeClientHydrate = (hostElm, tagName, hostId, hostRef) => {
         node["s-oo"] = parseInt(childRenderNode.$nodeId$);
       }
     }
-    if (orgLocationNode && !orgLocationNode["s-id"]) plt.$orgLocNodes$.delete(orgLocationId);
+    if (orgLocationNode && !orgLocationNode["s-id"]) {
+      plt.$orgLocNodes$.delete(orgLocationId);
+    }
   }
   const hosts = [];
   const snLen = slottedNodes.length;
@@ -779,6 +802,11 @@ var initializeClientHydrate = (hostElm, tagName, hostId, hostRef) => {
       }
     }
   }
+  if (scopeId2 && slotNodes.length) {
+    slotNodes.forEach((slot) => {
+      slot.$elm$.parentElement.classList.add(scopeId2 + "-s");
+    });
+  }
   if (shadowRoot) {
     let rnIdex = 0;
     const rnLen = shadowRootNodes.length;
@@ -805,6 +833,7 @@ var clientHydrate = (parentVNode, childRenderNodes, slotNodes, shadowRootNodes, 
   let childIdSplt;
   let childVNode;
   let i2;
+  const scopeId2 = hostElm["s-sc"];
   if (node.nodeType === 1 /* ElementNode */) {
     childNodeType = node.getAttribute(HYDRATE_CHILD_ID);
     if (childNodeType) {
@@ -827,6 +856,10 @@ var clientHydrate = (parentVNode, childRenderNodes, slotNodes, shadowRootNodes, 
         if (!parentVNode.$children$) {
           parentVNode.$children$ = [];
         }
+        if (scopeId2 && childIdSplt[0] === hostId) {
+          node["s-si"] = scopeId2;
+          childVNode.$attrs$.class += " " + scopeId2;
+        }
         const slotName = childVNode.$elm$.getAttribute("s-sn");
         if (typeof slotName === "string") {
           if (childVNode.$tag$ === "slot-fb") {
@@ -841,6 +874,9 @@ var clientHydrate = (parentVNode, childRenderNodes, slotNodes, shadowRootNodes, 
               shadowRootNodes,
               slottedNodes
             );
+            if (scopeId2) {
+              node.classList.add(scopeId2);
+            }
           }
           childVNode.$elm$["s-sn"] = slotName;
           childVNode.$elm$.removeAttribute("s-sn");
@@ -1786,6 +1822,8 @@ var patch = (oldVNode, newVNode2, isInitialRender = false) => {
       !isInitialRender && BUILD.updatable && oldChildren !== null
     ) {
       removeVnodes(oldChildren, 0, oldChildren.length - 1);
+    } else if (isInitialRender && BUILD.updatable && oldChildren !== null && newChildren === null) {
+      newVNode2.$children$ = oldChildren;
     }
   } else if ((defaultHolder = elm["s-cr"])) {
     defaultHolder.parentNode.textContent = text;
@@ -1844,6 +1882,9 @@ var markSlotContentForRelocation = (elm) => {
   }
 };
 var insertBefore = (parent, newNode, reference) => {
+  if (typeof newNode["s-sn"] === "string" && !!newNode["s-sr"] && !!newNode["s-cr"]) {
+    addRemoveSlotScopedClass(newNode["s-cr"], newNode, parent, newNode.parentElement);
+  }
   {
     return parent == null ? void 0 : parent.insertBefore(newNode, reference);
   }
@@ -2329,6 +2370,9 @@ var connectedCallback = (elm) => {
           if (cmpMeta.$flags$ & 1 /* shadowDomEncapsulation */) {
             const scopeId2 = addStyle(elm.shadowRoot, cmpMeta);
             elm.classList.remove(scopeId2 + "-h", scopeId2 + "-s");
+          } else if (cmpMeta.$flags$ & 2 /* scopedCssEncapsulation */) {
+            const scopeId2 = getScopeId(cmpMeta);
+            elm["s-sc"] = scopeId2;
           }
           initializeClientHydrate(elm, cmpMeta.$tagName$, hostId, hostRef);
         }
@@ -2985,18 +3029,60 @@ var setScopedSSR = (opts) => {
 var needsScopedSSR = () => scopedSSR;
 var scopedSSR = false;
 
+let MyApp$2 = class MyApp {
+    constructor(hostRef) {
+        registerInstance(this, hostRef);
+        this.anArray = [];
+    }
+    render() {
+        return (hAsync(Host, { key: '2821c6410d32829345e677cc99aa61bd130aac1d' }, hAsync("div", { key: 'ea1e3f08c8a58b348fae71e24f620b1d2c06e8fa' }, "Scoped parent.", hAsync("shadow-child-1", { key: 'ed6232a23e64fb01b206908d221ccd9f50b36a88' }, hAsync("slot", { key: '64e63dc4f1bc56cb2a5e5716d4833c767b78293c' })))));
+    }
+    static get style() { return ".sc-scoped-parent-h {\n    display: block;\n    border: 3px solid pink;\n  }"; }
+    static get cmpMeta() { return {
+        "$flags$": 6,
+        "$tagName$": "scoped-parent",
+        "$members$": {
+            "anArray": [16, "an-array"]
+        },
+        "$listeners$": undefined,
+        "$lazyBundleId$": "-",
+        "$attrsToReflect$": []
+    }; }
+};
+
+let MyApp$1 = class MyApp {
+    constructor(hostRef) {
+        registerInstance(this, hostRef);
+        this.anArray = [];
+    }
+    render() {
+        return (hAsync(Host, { key: '3f76c5202600e02de1ac9c9da99ddc1727d885b2' }, "Shadow Child 1.", hAsync("div", { key: '96959d6645179a5fa53ef4fa4199014bee602763' }, hAsync("shadow-child-2", { key: 'db977da5f5a374eb9201842ab5a4d29d6be5aaad' }, hAsync("slot", { key: '9abaa880585f54a6b930d165d0fd3771c7bdc779' })))));
+    }
+    static get style() { return ":host {\n    display: block;\n    border: 3px solid red;\n  }"; }
+    static get cmpMeta() { return {
+        "$flags$": 9,
+        "$tagName$": "shadow-child-1",
+        "$members$": {
+            "anArray": [16, "an-array"]
+        },
+        "$listeners$": undefined,
+        "$lazyBundleId$": "-",
+        "$attrsToReflect$": []
+    }; }
+};
+
 class MyApp {
     constructor(hostRef) {
         registerInstance(this, hostRef);
         this.anArray = [];
     }
     render() {
-        return (hAsync(Host, { key: '2821c6410d32829345e677cc99aa61bd130aac1d' }, hAsync("div", { key: 'ea1e3f08c8a58b348fae71e24f620b1d2c06e8fa' }, "An array component:", hAsync("ol", { key: 'ac48bb6abc22b89f79f151eb05fb76e1542b088c' }, this.anArray.map((item) => (hAsync("li", null, item)))))));
+        return (hAsync(Host, { key: '28adfcc5a80b4a5f92a0daa04d74dc8e27d045dd' }, "Shadow Child 2.", hAsync("slot", { key: '87d22878c5de6f57cc00ad669d167293f7ff5925' })));
     }
-    static get style() { return ":host {\n    display: block;\n    border: 3px solid blue;\n  }"; }
+    static get style() { return ":host {\n    display: block;\n    border: 3px solid green;\n  }"; }
     static get cmpMeta() { return {
         "$flags$": 9,
-        "$tagName$": "cmp-array-cmp",
+        "$tagName$": "shadow-child-2",
         "$members$": {
             "anArray": [16, "an-array"]
         },
@@ -3007,6 +3093,8 @@ class MyApp {
 }
 
 registerComponents([
+  MyApp$2,
+  MyApp$1,
   MyApp,
 ]);
 
@@ -3107,7 +3195,7 @@ var NAMESPACE = (
 );
 
 /*
- Stencil Hydrate Runner v4.35.1-dev.1750682262.1ce9541 | MIT Licensed | https://stenciljs.com
+ Stencil Hydrate Runner v4.35.3 | MIT Licensed | https://stenciljs.com
  */
 var __defProp = Object.defineProperty;
 var __export = (target, all) => {
@@ -14058,10 +14146,18 @@ var MockElement = class extends MockNode2 {
     return shadowRoot;
   }
   blur() {
-    dispatchEvent(
-      this,
-      new MockFocusEvent("blur", { relatedTarget: null, bubbles: true, cancelable: true, composed: true })
-    );
+    if (isCurrentlyDispatching(this, "blur")) {
+      return;
+    }
+    markAsDispatching(this, "blur");
+    try {
+      dispatchEvent(
+        this,
+        new MockFocusEvent("blur", { relatedTarget: null, bubbles: true, cancelable: true, composed: true })
+      );
+    } finally {
+      unmarkAsDispatching(this, "blur");
+    }
   }
   get localName() {
     if (!this.nodeName) {
@@ -14802,6 +14898,28 @@ function setTextContent(elm, text) {
   }
   const textNode = new MockTextNode(elm.ownerDocument, text);
   elm.appendChild(textNode);
+}
+var currentlyDispatching = /* @__PURE__ */ new WeakMap();
+function isCurrentlyDispatching(target, eventType) {
+  const dispatchingEvents = currentlyDispatching.get(target);
+  return dispatchingEvents != null && dispatchingEvents.has(eventType);
+}
+function markAsDispatching(target, eventType) {
+  let dispatchingEvents = currentlyDispatching.get(target);
+  if (dispatchingEvents == null) {
+    dispatchingEvents = /* @__PURE__ */ new Set();
+    currentlyDispatching.set(target, dispatchingEvents);
+  }
+  dispatchingEvents.add(eventType);
+}
+function unmarkAsDispatching(target, eventType) {
+  const dispatchingEvents = currentlyDispatching.get(target);
+  if (dispatchingEvents != null) {
+    dispatchingEvents.delete(eventType);
+    if (dispatchingEvents.size === 0) {
+      currentlyDispatching.delete(target);
+    }
+  }
 }
 
 // src/mock-doc/comment-node.ts
